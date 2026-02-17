@@ -164,7 +164,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
     <GameShell gameName="おぼえてならべて" session={session} maxTrials={maxTrials}>
       {/* Instruction */}
       <div className="mb-4 text-center">
-        <p className="text-lg text-indigo-600 font-medium">
+        <p className="text-lg font-medium" style={{ color: '#8B5CF6' }}>
           {phase === 'showing_sequence' ? 'よく みてね！' : phase === 'input' ? 'おなじ じゅんばんで タップ！' : ''}
         </p>
         {phase === 'input' && (
@@ -187,7 +187,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
             className={`tap-target-large aspect-square rounded-2xl border-4 transition-all duration-200
               ${highlightedCell === i
                 ? 'bg-amber-300 border-amber-500 scale-110'
-                : 'bg-indigo-100 border-indigo-200'}
+                : 'bg-purple-900/20 border-purple-700/30'}
               ${phase === 'input' ? 'active:scale-95 cursor-pointer' : 'cursor-default'}`}
           >
             {highlightedCell === i && (

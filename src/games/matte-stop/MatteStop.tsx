@@ -143,7 +143,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
       <div className="flex flex-col items-center justify-center w-full max-w-md">
         {/* Instruction */}
         <div className="mb-6 text-center">
-          <p className="text-lg text-indigo-600 font-medium">
+          <p className="text-lg font-medium" style={{ color: '#8B5CF6' }}>
             どうぶつが きたら タップ！
           </p>
           <p className="inline-flex items-center gap-1 text-base text-red-400 font-medium mt-1">
@@ -154,7 +154,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
         {/* Stimulus area */}
         <div
           className="relative w-64 h-64 rounded-3xl flex items-center justify-center cursor-pointer select-none"
-          style={{ backgroundColor: phase === 'stimulus' ? (trialType === 'nogo' ? '#fee2e2' : '#e0e7ff') : '#f5f5f5' }}
+          style={{ backgroundColor: phase === 'stimulus' ? (trialType === 'nogo' ? '#fee2e2' : 'rgba(108,60,225,0.15)') : 'rgba(42,42,90,0.2)' }}
           onClick={handleTap}
         >
           {phase === 'fixation' && (

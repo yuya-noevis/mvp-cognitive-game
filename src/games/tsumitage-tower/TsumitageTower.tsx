@@ -224,7 +224,7 @@ export default function TsumitageTower({ ageGroup, stageMode, maxTrials: stageMo
               disabled={phase !== 'playing'}
               className={`flex flex-col-reverse items-center justify-end
                 w-20 rounded-2xl p-2 transition-all active:scale-95
-                ${selectedPeg === i ? 'ring-4 ring-indigo-400' : ''}
+                ${selectedPeg === i ? 'ring-4 ring-purple-500' : ''}
                 ${phase === 'playing' ? 'cursor-pointer' : 'cursor-default'}`}
               style={{
                 background: selectedPeg === i ? 'var(--color-primary-bg)' : 'var(--color-surface)',

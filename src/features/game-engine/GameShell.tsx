@@ -3,7 +3,8 @@
 import React from 'react';
 import type { GameSessionControls } from './hooks/useGameSession';
 import { StarIcon } from '@/components/icons';
-import { ManasCharacter, ManasFace } from '@/components/mascot/ManasCharacter';
+import Luna, { LunaFaceOnly } from '@/components/mascot/Luna';
+import { CosmicProgressBar } from '@/components/ui/CosmicProgressBar';
 
 interface GameShellProps {
   gameName: string;
@@ -15,20 +16,40 @@ interface GameShellProps {
 }
 
 /**
- * GameShell - Duolingo ABC風ゲームUIラッパー
+ * GameShell - 宇宙テーマ ゲームUIラッパー
  *
- * エクササイズ中: 白背景 + Xボタン + 緑プログレスバー
- * 開始画面・終了画面・休憩画面もDuolingo ABCスタイル
+ * エクササイズ中: 宇宙背景 + CosmicProgressBar
+ * 開始画面・終了画面・休憩画面も宇宙テーマ
  */
 export function GameShell({ gameName, session, children, stageMode, maxTrials, onStageComplete }: GameShellProps) {
   // Session not started yet
   if (!session.sessionId) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-8"
-           style={{ background: '#F7F7F7' }}>
-        <div className="text-center animate-fade-in-up">
+      <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-space relative overflow-hidden">
+        {/* Subtle stars */}
+        <div className="absolute inset-0 pointer-events-none">
+          {Array.from({ length: 30 }).map((_, i) => (
+            <div
+              key={i}
+              className={i % 3 === 0 ? 'animate-twinkle' : ''}
+              style={{
+                position: 'absolute',
+                left: `${(i * 37) % 100}%`,
+                top: `${(i * 53) % 100}%`,
+                width: `${1 + (i % 3)}px`,
+                height: `${1 + (i % 3)}px`,
+                borderRadius: '50%',
+                background: '#F0F0FF',
+                opacity: 0.3 + (i % 5) * 0.1,
+                animationDelay: `${i * 0.3}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="text-center animate-fade-in-up relative z-10">
           <div className="mb-4">
-            <ManasCharacter
+            <Luna
               expression="encouraging"
               pose="waving"
               size={120}
@@ -38,7 +59,7 @@ export function GameShell({ gameName, session, children, stageMode, maxTrials, o
 
           <button
             onClick={session.startSession}
-            className="btn-duo-green px-14 py-5 text-xl rounded-2xl tap-interactive active:scale-95"
+            className="btn-cosmic px-14 py-5 text-xl rounded-2xl tap-interactive active:scale-95"
           >
             はじめる
           </button>
@@ -55,20 +76,19 @@ export function GameShell({ gameName, session, children, stageMode, maxTrials, o
         : 0;
       setTimeout(() => onStageComplete(accuracy), 0);
       return (
-        <div className="flex min-h-screen items-center justify-center" style={{ background: '#F7F7F7' }}>
+        <div className="flex min-h-screen items-center justify-center bg-space">
           <div className="animate-gentle-pulse">
-            <ManasFace expression="happy" size={64} />
+            <LunaFaceOnly expression="happy" size={64} />
           </div>
         </div>
       );
     }
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-8"
-           style={{ background: '#F7F7F7' }}>
-        <div className="text-center animate-pop-in">
+      <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-space relative overflow-hidden">
+        <div className="text-center animate-pop-in relative z-10">
           <div className="mb-2">
-            <ManasCharacter
+            <Luna
               expression="excited"
               pose="jumping"
               size={130}
@@ -77,16 +97,16 @@ export function GameShell({ gameName, session, children, stageMode, maxTrials, o
           </div>
 
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full mb-8 animate-fade-in-up"
-               style={{ background: 'rgba(88,204,2,0.12)', animationDelay: '300ms' }}>
-            <StarIcon size={20} style={{ color: '#FFC800' }} />
-            <p className="text-base font-medium" style={{ color: '#58CC02' }}>
+               style={{ background: 'rgba(255,212,59,0.15)', animationDelay: '300ms' }}>
+            <StarIcon size={20} style={{ color: '#FFD43B' }} />
+            <p className="text-base font-medium" style={{ color: '#FFD43B' }}>
               {session.totalTrials}かい チャレンジしたよ！
             </p>
           </div>
           <div className="animate-fade-in-up" style={{ animationDelay: '500ms' }}>
             <button
               onClick={() => window.history.back()}
-              className="btn-duo-blue px-14 py-5 text-lg rounded-2xl tap-interactive active:scale-95"
+              className="btn-comet px-14 py-5 text-lg rounded-2xl tap-interactive active:scale-95"
             >
               もどる
             </button>
@@ -99,11 +119,10 @@ export function GameShell({ gameName, session, children, stageMode, maxTrials, o
   // Break screen
   if (session.isBreakActive) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-8"
-           style={{ background: '#F7F7F7' }}>
+      <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-space">
         <div className="text-center animate-fade-in-up">
           <div className="mb-4">
-            <ManasCharacter
+            <Luna
               expression="sleeping"
               pose="sitting"
               size={120}
@@ -111,23 +130,23 @@ export function GameShell({ gameName, session, children, stageMode, maxTrials, o
             />
           </div>
 
-          <h2 className="text-2xl font-bold mb-3" style={{ color: '#4B4B4B' }}>
+          <h2 className="text-2xl font-bold mb-3" style={{ color: '#F0F0FF' }}>
             ひとやすみ
           </h2>
-          <p className="text-base mb-8" style={{ color: '#777777' }}>
+          <p className="text-base mb-8" style={{ color: '#B8B8D0' }}>
             すこし やすんでから つづけよう
           </p>
           <div className="flex flex-col items-center gap-3">
             <button
               onClick={session.endBreak}
-              className="btn-duo-green px-14 py-5 text-lg rounded-2xl tap-interactive active:scale-95"
+              className="btn-cosmic px-14 py-5 text-lg rounded-2xl tap-interactive active:scale-95"
             >
               つづける
             </button>
             <button
               onClick={() => session.endSession('user_quit')}
-              className="px-8 py-3 text-base font-medium rounded-xl tap-interactive"
-              style={{ background: '#E5E5E5', color: '#777777', boxShadow: '0 2px 0 #D5D5D5' }}
+              className="px-8 py-3 text-base font-medium rounded-2xl tap-interactive"
+              style={{ background: 'rgba(42,42,90,0.6)', color: '#B8B8D0', boxShadow: '0 2px 0 rgba(0,0,0,0.2)' }}
             >
               おわる
             </button>
@@ -140,39 +159,24 @@ export function GameShell({ gameName, session, children, stageMode, maxTrials, o
   // Progress calculation
   const progress = maxTrials ? Math.min(session.trialNumber / maxTrials, 1) : 0;
 
-  // Active game - clean white bg + X button + green progress bar (Duolingo ABC exercise style)
+  // Active game - cosmic background + CosmicProgressBar
   return (
-    <div className="flex min-h-screen flex-col" style={{ background: '#F7F7F7' }}>
-      {/* Header: X button + green progress bar */}
+    <div className="flex min-h-screen flex-col bg-space">
+      {/* Header: close button + cosmic progress bar */}
       <header className="flex items-center gap-3 px-4 py-3">
-        {/* X close button (Duo ABC style) */}
+        {/* Close button */}
         <button
           onClick={() => session.endSession('user_quit')}
           className="flex-shrink-0 tap-target tap-interactive"
           aria-label="おわる"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6l12 12" stroke="#E5E5E5" strokeWidth="3" strokeLinecap="round" />
+            <path d="M18 6L6 18M6 6l12 12" stroke="#B8B8D0" strokeWidth="3" strokeLinecap="round" />
           </svg>
         </button>
 
-        {/* Green progress bar (Duo ABC style) */}
-        <div className="flex-1 h-4 rounded-full overflow-hidden relative"
-             style={{ background: '#E5E5E5' }}>
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${Math.max(progress * 100, 2)}%`,
-              background: 'linear-gradient(90deg, #58CC02 0%, #7DD836 100%)',
-              boxShadow: progress > 0.05 ? 'inset 0 2px 0 rgba(255,255,255,0.2)' : 'none',
-            }}
-          />
-          {/* Green dot at start position */}
-          {progress <= 0.05 && (
-            <div className="absolute left-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full"
-                 style={{ background: '#58CC02' }} />
-          )}
-        </div>
+        {/* Cosmic progress bar */}
+        <CosmicProgressBar progress={progress} className="flex-1" />
       </header>
 
       {/* Game content */}

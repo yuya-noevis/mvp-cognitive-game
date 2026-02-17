@@ -217,7 +217,7 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
                     <span className="text-xs font-bold" style={{ color: 'var(--color-primary-dark)' }}>S</span>
                   )}
                   {!isPlayer && cell === 'goal' && (
-                    <FlagIcon size={Math.max(cellSize * 0.5, 16)} className="text-green-600" />
+                    <FlagIcon size={Math.max(cellSize * 0.5, 16)} style={{ color: '#4ECDC4' }} />
                   )}
                 </button>
               );

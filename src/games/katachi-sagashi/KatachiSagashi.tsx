@@ -122,10 +122,11 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
       {/* Target display */}
       {target && (
         <div className="mb-6 text-center">
-          <p className="text-lg text-indigo-600 font-medium mb-2">
+          <p className="text-lg font-medium mb-2" style={{ color: '#8B5CF6' }}>
             おなじ かたちは どれ？
           </p>
-          <div className="inline-block p-4 bg-white rounded-2xl shadow-md border-2 border-indigo-200">
+          <div className="inline-block p-4 rounded-2xl shadow-md border-2"
+            style={{ background: 'rgba(26,26,64,0.85)', borderColor: 'rgba(139,92,246,0.3)' }}>
             <svg width="80" height="80" viewBox="0 0 100 100">
               <path d={target.path} fill={target.color} />
             </svg>
@@ -140,9 +141,10 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
             key={choice.id}
             onClick={() => handleSelect(choice)}
             disabled={phase !== 'showing'}
-            className="tap-target-large aspect-square rounded-2xl bg-white border-4 border-gray-200
+            className="tap-target-large aspect-square rounded-2xl border-4
               flex items-center justify-center
-              hover:border-indigo-300 active:scale-95 transition-all"
+              hover:border-purple-500 active:scale-95 transition-all"
+            style={{ background: 'rgba(26,26,64,0.85)', borderColor: 'rgba(139,92,246,0.2)' }}
           >
             <svg
               width="64"

@@ -20,8 +20,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 /**
- * BottomNav - Duolingo風下部ナビゲーション
- * 5つのアイコンタブ、選択中はハイライト
+ * BottomNav - 宇宙テーマ 下部ナビゲーション
  */
 export function BottomNav() {
   const pathname = usePathname();
@@ -29,8 +28,9 @@ export function BottomNav() {
   return (
     <nav className="flex items-center justify-around py-2 px-1"
          style={{
-           background: 'var(--duo-nav-bg, var(--color-surface))',
-           borderTop: '1px solid var(--duo-nav-border, var(--color-border-light))',
+           background: 'rgba(26, 26, 64, 0.95)',
+           backdropFilter: 'blur(8px)',
+           borderTop: '1px solid rgba(108, 60, 225, 0.15)',
          }}>
       {NAV_ITEMS.map((item) => {
         const isActive = pathname === item.href || (item.href === '/select' && pathname?.startsWith('/select'));
@@ -42,18 +42,18 @@ export function BottomNav() {
             href={item.href}
             className="flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-xl tap-interactive transition-all"
             style={{
-              background: isActive ? 'var(--duo-node-active, var(--color-primary))' + '20' : 'transparent',
+              background: isActive ? 'rgba(108, 60, 225, 0.2)' : 'transparent',
             }}
           >
             <Icon
               size={24}
               style={{
-                color: isActive ? 'var(--duo-node-active, var(--color-primary))' : 'var(--color-text-muted)',
+                color: isActive ? '#8B5CF6' : '#8888AA',
               }}
             />
             <span className="text-[10px] font-medium"
                   style={{
-                    color: isActive ? 'var(--duo-node-active, var(--color-primary))' : 'var(--color-text-muted)',
+                    color: isActive ? '#8B5CF6' : '#8888AA',
                   }}>
               {item.label}
             </span>

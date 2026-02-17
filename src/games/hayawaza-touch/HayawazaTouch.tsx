@@ -18,9 +18,9 @@ interface HayawazaTouchProps {
 type Phase = 'ready' | 'fixation' | 'stimulus' | 'feedback' | 'iti';
 
 // Crescent moon SVG for non-target stimulus
-function MoonIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
+function MoonIcon({ size = 24, className = '', style }: { size?: number; className?: string; style?: React.CSSProperties }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} style={style}>
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
         fill="currentColor" fillOpacity={0.3} stroke="currentColor" strokeWidth={1.5}
         strokeLinecap="round" strokeLinejoin="round" />
@@ -154,7 +154,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
       <div className="flex flex-col items-center justify-center w-full max-w-md">
         {/* Instruction */}
         <div className="mb-6 text-center">
-          <div className="flex items-center justify-center gap-1 text-lg text-indigo-600 font-medium flex-wrap">
+          <div className="flex items-center justify-center gap-1 text-lg font-medium flex-wrap" style={{ color: '#8B5CF6' }}>
             {mode === 'srt' ? (
               <>
                 <StarIcon size={22} className="text-amber-400 inline" style={{ fill: '#fbbf24', stroke: '#f59e0b' }} />
@@ -164,7 +164,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
               <>
                 <StarIcon size={22} className="text-amber-400 inline" style={{ fill: '#fbbf24', stroke: '#f59e0b' }} />
                 <span>だけ タップ！</span>
-                <MoonIcon size={22} className="text-indigo-300 inline" />
+                <MoonIcon size={22} className="inline" style={{ color: '#7C3AED' }} />
                 <span>は まって！</span>
               </>
             )}
@@ -177,19 +177,19 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
           disabled={phase !== 'stimulus'}
           className="w-48 h-48 rounded-full flex items-center justify-center transition-all active:scale-90"
           style={{
-            backgroundColor: phase === 'stimulus' ? '#e0e7ff' : '#f5f5f5',
+            backgroundColor: phase === 'stimulus' ? 'rgba(139,92,246,0.15)' : 'rgba(26,26,64,0.85)',
           }}
         >
           {phase === 'fixation' && (
-            <span className="text-4xl text-gray-400">+</span>
+            <span className="text-4xl" style={{ color: 'var(--color-text-muted)' }}>+</span>
           )}
           {phase === 'stimulus' && (
             isTarget
               ? <StarIcon size={80} className="text-amber-400" style={{ fill: '#fbbf24', stroke: '#f59e0b' }} />
-              : <MoonIcon size={80} className="text-indigo-300" />
+              : <MoonIcon size={80} className="" style={{ color: '#7C3AED' }} />
           )}
           {(phase === 'ready' || phase === 'iti') && (
-            <span className="text-xl text-gray-300">...</span>
+            <span className="text-xl" style={{ color: 'var(--color-text-muted)' }}>...</span>
           )}
         </button>
 

@@ -25,7 +25,7 @@ interface TargetVisual {
 }
 const TARGET_VISUALS: TargetVisual[] = [
   { render: (s) => <StarIcon size={s} className="text-amber-400" style={{ fill: '#fbbf24', stroke: '#f59e0b' }} /> },
-  { render: (s) => <TargetIcon size={s} className="text-indigo-500" /> },
+  { render: (s) => <TargetIcon size={s} style={{ color: '#8B5CF6' }} /> },
   { render: (s) => <ColorDotIcon color="#3b82f6" size={s} /> },
   { render: (s) => <ColorDotIcon color="#eab308" size={s} /> },
   { render: (s) => <ColorDotIcon color="#22c55e" size={s} /> },

@@ -169,8 +169,8 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
                   key={choice.id}
                   onClick={() => handleSelect(choice)}
                   className="tap-target-large w-24 h-24 rounded-2xl flex items-center justify-center
-                    border-4 border-gray-200 hover:border-indigo-300 active:scale-95 transition-all"
-                  style={{ background: 'var(--color-surface)' }}
+                    border-4 active:scale-95 transition-all"
+                  style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border-light)' }}
                 >
                   <ColorDotIcon color={choice.pattern.color} size={56} />
                 </button>

@@ -108,21 +108,22 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
     <GameShell gameName="ひかりキャッチ" session={session} maxTrials={maxTrials}>
       {/* Target instruction */}
       <div className="mb-4 text-center">
-        <span className="inline-flex items-center gap-1 text-lg text-indigo-600 font-medium">
+        <span className="inline-flex items-center gap-1 text-lg font-medium" style={{ color: '#8B5CF6' }}>
           {(() => { const ButterflyIcon = HikariCatchIcons.butterfly; return <ButterflyIcon size={24} />; })()}
           をタップしよう！
         </span>
       </div>
 
       {/* Game area */}
-      <div className="relative w-full max-w-md aspect-square bg-indigo-50 rounded-3xl overflow-hidden">
+      <div className="relative w-full max-w-md aspect-square rounded-3xl overflow-hidden"
+           style={{ background: 'rgba(42,42,90,0.3)' }}>
         {phase === 'showing' && stimulus && stimulus.items.map((item) => (
           <button
             key={item.id}
             onClick={() => handleTap(item)}
             className={`absolute tap-target-large rounded-full border-4 flex items-center justify-center
               transition-transform active:scale-90
-              ${COLOR_CLASSES[item.color] || 'bg-gray-200 border-gray-400'}`}
+              ${COLOR_CLASSES[item.color] || 'bg-gray-200 border-gray-400 bg-opacity-60'}`}
             style={{
               left: `${item.position.x}%`,
               top: `${item.position.y}%`,
@@ -141,7 +142,7 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
 
         {phase === 'ready' && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-2xl text-indigo-300">つぎの おともだちが くるよ...</span>
+            <span className="text-2xl" style={{ color: '#8B5CF6' }}>つぎの おともだちが くるよ...</span>
           </div>
         )}
       </div>

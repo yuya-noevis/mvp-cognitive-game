@@ -165,18 +165,21 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
   return (
     <GameShell gameName="いろかえスイッチ" session={session} maxTrials={maxTrials}>
       {/* Rule indicator */}
-      <div className={`mb-4 text-center p-3 rounded-xl ${currentRule === 'color' ? 'bg-purple-100' : 'bg-teal-100'}`}>
-        <p className={`font-bold ${ruleIndicatorSize} ${currentRule === 'color' ? 'text-purple-700' : 'text-teal-700'}`}>
+      <div className={`mb-4 text-center p-3 rounded-xl`}
+        style={{ background: currentRule === 'color' ? 'rgba(108,60,225,0.15)' : 'rgba(78,205,196,0.15)' }}>
+        <p className={`font-bold ${ruleIndicatorSize}`}
+          style={{ color: currentRule === 'color' ? '#8B5CF6' : '#4ECDC4' }}>
           いまは「{currentRule === 'color' ? 'いろ' : 'かたち'}」！
         </p>
       </div>
 
       {/* Rule change animation */}
       {showRuleChange && (
-        <div className="fixed inset-0 flex items-center justify-center z-40 bg-white/80">
+        <div className="fixed inset-0 flex items-center justify-center z-40"
+          style={{ background: 'rgba(26,26,64,0.85)' }}>
           <div className="text-center animate-bounce">
-            <p className="text-3xl font-bold text-indigo-600 mb-2">ルール チェンジ！</p>
-            <p className="text-2xl font-bold text-teal-600">
+            <p className="text-3xl font-bold mb-2" style={{ color: '#8B5CF6' }}>ルール チェンジ！</p>
+            <p className="text-2xl font-bold" style={{ color: '#4ECDC4' }}>
               こんどは「{currentRule === 'color' ? 'いろ' : 'かたち'}」で わけよう！
             </p>
           </div>
@@ -201,7 +204,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
             disabled={phase !== 'stimulus'}
             className={`tap-target-large w-28 h-28 rounded-2xl border-4 border-dashed flex flex-col items-center justify-center
               transition-all active:scale-95
-              ${phase === 'stimulus' ? 'border-gray-400 hover:border-indigo-400' : 'border-gray-200'}`}
+              ${phase === 'stimulus' ? 'border-gray-400 hover:border-purple-500' : 'border-gray-200'}`}
           >
             <div className={`w-12 h-12 rounded-lg ${COLOR_BG[bin.color]} flex items-center justify-center mb-1`}>
               <span className="text-xl text-white">{SHAPE_EMOJI[bin.shape]}</span>

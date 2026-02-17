@@ -102,7 +102,7 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
               >
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                  className="text-indigo-500">
+                  style={{ color: '#8B5CF6' }}>
                   <polygon points="11,5 6,9 2,9 2,15 6,15 11,19" fill="currentColor" fillOpacity={0.2} />
                   <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
@@ -125,7 +125,7 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
                   disabled={phase !== 'choosing'}
                   className={`tap-target-large aspect-square rounded-2xl flex flex-col items-center justify-center
                     border-4 transition-all active:scale-95
-                    ${phase === 'choosing' ? 'hover:border-indigo-300' : 'opacity-60'}`}
+                    ${phase === 'choosing' ? '' : 'opacity-60'}`}
                   style={{
                     background: 'var(--color-surface)',
                     borderColor: 'var(--color-border-light)',

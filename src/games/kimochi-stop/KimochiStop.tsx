@@ -186,7 +186,7 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
 
         {/* Block switch announcement */}
         {phase === 'block_switch' && (
-          <div className="fixed inset-0 flex items-center justify-center z-40 bg-white/80">
+          <div className="fixed inset-0 flex items-center justify-center z-40" style={{ background: 'rgba(26,26,64,0.85)' }}>
             <div className="text-center animate-scale-in">
               <p className="text-2xl font-bold mb-3" style={{ color: 'var(--color-primary-dark)' }}>
                 ルール チェンジ！
@@ -216,7 +216,7 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
           )}
           {phase === 'stimulus' && (() => {
             const FaceIcon = FACE_ICONS[currentFace];
-            return FaceIcon ? <FaceIcon size={96} className="text-indigo-600" /> : null;
+            return FaceIcon ? <FaceIcon size={96} style={{ color: '#8B5CF6' }} /> : null;
           })()}
           {(phase === 'ready' || phase === 'iti') && (
             <span className="text-xl" style={{ color: 'var(--color-text-muted)' }}>...</span>

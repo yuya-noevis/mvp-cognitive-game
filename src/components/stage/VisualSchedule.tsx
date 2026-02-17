@@ -11,13 +11,7 @@ interface VisualScheduleProps {
 }
 
 /**
- * VisualSchedule - Duolingo風ダークテーマ対応 TEACCH視覚スケジュール
- *
- * 設計根拠：
- * - TEACCH (Mesibov et al., 2004): 視覚的に構造化された予測可能なスケジュール
- * - 言語非依存: アイコンと色のみで進捗を表現
- * - 「いまここ」マーカーで現在位置を明示
- * - ダークテーマのCSS変数に対応
+ * VisualSchedule - 宇宙テーマ TEACCH視覚スケジュール
  */
 export function VisualSchedule({ games, currentGameIndex }: VisualScheduleProps) {
   return (
@@ -30,19 +24,17 @@ export function VisualSchedule({ games, currentGameIndex }: VisualScheduleProps)
 
         return (
           <React.Fragment key={`${game.gameId}-${index}`}>
-            {/* Connector line */}
             {index > 0 && (
               <div
                 className="h-0.5 w-4 flex-shrink-0 rounded-full"
                 style={{
                   background: isCompleted || isCurrent
-                    ? '#58CC02'
-                    : '#E5E5E5',
+                    ? '#6C3CE1'
+                    : 'rgba(255,255,255,0.1)',
                 }}
               />
             )}
 
-            {/* Game node */}
             <div
               className={`relative flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center
                 transition-all duration-300
@@ -50,13 +42,14 @@ export function VisualSchedule({ games, currentGameIndex }: VisualScheduleProps)
                 ${isFuture ? 'opacity-40' : 'opacity-100'}`}
               style={{
                 background: isCompleted
-                  ? '#58CC02'
+                  ? '#6C3CE1'
                   : isCurrent
-                    ? `${domainMeta?.color ?? '#58CC02'}30`
-                    : '#E5E5E5',
+                    ? `${domainMeta?.color ?? '#6C3CE1'}30`
+                    : 'rgba(42, 42, 90, 0.4)',
                 border: isCurrent
-                  ? `2px solid ${domainMeta?.color ?? '#1CB0F6'}`
+                  ? `2px solid ${domainMeta?.color ?? '#8B5CF6'}`
                   : '2px solid transparent',
+                boxShadow: isCurrent ? `0 0 12px ${domainMeta?.color ?? '#6C3CE1'}44` : 'none',
               }}
             >
               {isCompleted ? (
@@ -64,24 +57,22 @@ export function VisualSchedule({ games, currentGameIndex }: VisualScheduleProps)
               ) : (
                 <DomainIcon domain={game.domain} size={18} style={{
                   color: isCurrent
-                    ? (domainMeta?.color ?? '#1CB0F6')
-                    : '#AFAFAF',
+                    ? (domainMeta?.color ?? '#8B5CF6')
+                    : '#8888AA',
                 }} />
               )}
 
-              {/* 「いまここ」indicator */}
               {isCurrent && (
                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2">
                   <div className="w-1.5 h-1.5 rounded-full"
-                       style={{ background: '#1CB0F6' }} />
+                       style={{ background: '#8B5CF6' }} />
                 </div>
               )}
 
-              {/* Review badge */}
               {game.isReview && !isCompleted && (
                 <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
-                     style={{ background: '#FFC800' }}>
-                  <RefreshIcon size={8} style={{ color: 'white' }} />
+                     style={{ background: '#FFD43B' }}>
+                  <RefreshIcon size={8} style={{ color: '#1A1A40' }} />
                 </div>
               )}
             </div>

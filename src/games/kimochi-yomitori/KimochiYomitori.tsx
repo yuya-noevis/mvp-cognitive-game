@@ -151,7 +151,7 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
                    style={{ background: 'var(--color-surface)', border: '4px solid var(--color-border-light)' }}>
                 {(() => {
                   const FaceIcon = KimochiYomitoriIcons[targetEmotion.iconKey];
-                  return FaceIcon ? <FaceIcon size={96} className="text-indigo-600" /> : null;
+                  return FaceIcon ? <FaceIcon size={96} style={{ color: '#8B5CF6' }} /> : null;
                 })()}
               </div>
             </div>
@@ -163,7 +163,7 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
                   key={choice.id}
                   onClick={() => handleSelect(choice)}
                   className="tap-target-large flex items-center gap-3 px-4 py-3 rounded-2xl
-                    border-2 transition-all active:scale-95 hover:border-indigo-300"
+                    border-2 transition-all active:scale-95 hover:border-purple-400"
                   style={{
                     background: 'var(--color-surface)',
                     borderColor: 'var(--color-border-light)',
@@ -171,7 +171,7 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
                 >
                   {(() => {
                     const FaceIcon = KimochiYomitoriIcons[choice.emotion.iconKey];
-                    return FaceIcon ? <FaceIcon size={32} className="text-indigo-500" /> : null;
+                    return FaceIcon ? <FaceIcon size={32} style={{ color: '#8B5CF6' }} /> : null;
                   })()}
                   <span className="text-base font-bold" style={{ color: 'var(--color-text)' }}>
                     {choice.emotion.labelKana}

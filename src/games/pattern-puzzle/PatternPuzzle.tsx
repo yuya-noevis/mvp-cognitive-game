@@ -219,7 +219,7 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
                   onClick={() => handleSelect(choice)}
                   disabled={phase !== 'showing'}
                   className="tap-target-large w-16 h-16 rounded-xl flex items-center justify-center
-                    border-2 border-gray-200 hover:border-indigo-300 active:scale-95 transition-all"
+                    border-2 border-gray-200 hover:border-purple-500 active:scale-95 transition-all"
                   style={{ background: 'var(--color-surface)' }}
                 >
                   <span className="text-2xl" style={{ color: choice.color }}>{choice.shape}</span>
