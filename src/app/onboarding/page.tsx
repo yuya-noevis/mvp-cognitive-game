@@ -9,6 +9,10 @@ import { CosmicProgressBar } from '@/components/ui/CosmicProgressBar';
 import { AvatarIcon } from '@/components/mascot/AvatarIcon';
 import { AVATARS } from '@/components/mascot/avatars';
 import { useRouter } from 'next/navigation';
+import { isSupabaseEnabled, supabase } from '@/lib/supabase/client';
+import { generateAnonChildId } from '@/lib/utils';
+import type { AgeGroup } from '@/types';
+import { setLocalChildProfile, setLocalConsents } from '@/lib/local-profile';
 
 const TOTAL_STEPS = 6;
 
@@ -30,9 +34,24 @@ interface OnboardingData {
   avatarId: string;
 }
 
+function computeAgeGroup(birthYear: number, birthMonth: number, birthDay: number): AgeGroup {
+  const now = new Date();
+  const birth = new Date(birthYear, birthMonth - 1, birthDay);
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+    age--;
+  }
+  if (age <= 5) return '3-5';
+  if (age <= 9) return '6-9';
+  return '10-15';
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [authError, setAuthError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     email: '',
     password: '',
@@ -49,12 +68,134 @@ export default function OnboardingPage() {
 
   const progress = (step + 1) / TOTAL_STEPS;
 
+  const handleStep1Next = async () => {
+    setAuthError('');
+    setSaving(true);
+    try {
+      // Local/demo mode: skip account creation
+      if (!isSupabaseEnabled) {
+        setStep(1);
+        return;
+      }
+
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      });
+      if (error) {
+        setAuthError(error.message);
+        return;
+      }
+      // signUp may not create a session if email confirmation is enabled.
+      // Immediately sign in to ensure we have an active session.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      if (signInError) {
+        // Email confirmation may be required — still proceed but warn
+        console.warn('Auto sign-in after signUp failed:', signInError.message);
+      }
+      setStep(1);
+    } catch {
+      setAuthError('アカウント作成に失敗しました');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFinalStep = async () => {
+    setSaving(true);
+    try {
+      // Local/demo mode: persist profile to localStorage and continue to consent
+      if (!isSupabaseEnabled) {
+        const ageGroup = computeAgeGroup(data.birthYear, data.birthMonth, data.birthDay);
+        const anonChildId = generateAnonChildId();
+        const localId = `local_${anonChildId}`;
+        const consentDefaults = { data_optimization: false, research_use: false, biometric: false };
+
+        setLocalChildProfile({
+          id: localId,
+          anonChildId,
+          displayName: data.childName,
+          ageGroup,
+          avatarId: data.avatarId,
+          settings: {},
+          consentFlags: consentDefaults,
+        });
+        setLocalConsents(consentDefaults);
+        router.push('/consent');
+        return;
+      }
+
+      let { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        // Session may have expired — try signing in again with stored credentials
+        const { error: reSignInError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+        if (reSignInError) {
+          setAuthError('ログイン状態が確認できません。最初からやり直してください。');
+          return;
+        }
+        const { data: retryData } = await supabase.auth.getUser();
+        userData = retryData;
+        if (!userData.user) {
+          setAuthError('ログイン状態が確認できません');
+          return;
+        }
+      }
+
+      const ageGroup = computeAgeGroup(data.birthYear, data.birthMonth, data.birthDay);
+      const anonChildId = generateAnonChildId();
+      const birthDate = `${data.birthYear}-${String(data.birthMonth).padStart(2, '0')}-${String(data.birthDay).padStart(2, '0')}`;
+
+      // Insert child record
+      const { data: childRow, error: childError } = await supabase
+        .from('children')
+        .insert({
+          anon_child_id: anonChildId,
+          parent_user_id: userData.user.id,
+          display_name: data.childName,
+          name: data.childName,
+          birth_date: birthDate,
+          birth_year_month: `${data.birthYear}-${String(data.birthMonth).padStart(2, '0')}`,
+          age_group: ageGroup,
+          avatar_id: data.avatarId,
+          parent_role: data.role || 'parent',
+          is_onboarded: true,
+          consent_flags: { data_optimization: false, research_use: false, biometric: false },
+        })
+        .select('id')
+        .single();
+
+      if (childError) {
+        setAuthError(`お子さま情報の保存に失敗しました: ${childError.message} (${childError.code})`);
+        console.error('childError:', childError);
+        return;
+      }
+
+      // Insert child_profiles
+      if (childRow) {
+        await supabase.from('child_profiles').insert({
+          child_id: childRow.id,
+          disability_types: data.disabilities,
+          severity: data.severity,
+          traits: data.traits,
+        });
+      }
+
+      router.push('/consent');
+    } catch {
+      setAuthError('保存中にエラーが発生しました');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const next = () => {
     if (step < TOTAL_STEPS - 1) setStep(step + 1);
-    else {
-      // Onboarding complete
-      router.push('/select');
-    }
   };
 
   const back = () => {
@@ -95,8 +236,10 @@ export default function OnboardingPage() {
               <Step1Email
                 email={data.email}
                 password={data.password}
+                error={authError}
+                saving={saving}
                 onChange={(email, password) => setData({ ...data, email, password })}
-                onNext={next}
+                onNext={handleStep1Next}
               />
             )}
             {step === 1 && (
@@ -136,8 +279,10 @@ export default function OnboardingPage() {
             {step === 5 && (
               <Step6Avatar
                 avatarId={data.avatarId}
+                error={authError}
+                saving={saving}
                 onChange={(avatarId) => setData({ ...data, avatarId })}
-                onNext={next}
+                onNext={handleFinalStep}
               />
             )}
           </motion.div>
@@ -150,9 +295,9 @@ export default function OnboardingPage() {
 /* ====== Step Components ====== */
 
 function Step1Email({
-  email, password, onChange, onNext,
+  email, password, error, saving, onChange, onNext,
 }: {
-  email: string; password: string;
+  email: string; password: string; error: string; saving: boolean;
   onChange: (email: string, password: string) => void;
   onNext: () => void;
 }) {
@@ -166,7 +311,7 @@ function Step1Email({
           value={email}
           onChange={(e) => onChange(e.target.value, password)}
           placeholder="メールアドレス"
-          className="w-full h-14 px-5 rounded-2xl text-base font-medium"
+          className="w-full h-14 px-5 rounded-2xl text-base font-medium outline-none"
           style={{
             background: 'rgba(42, 42, 90, 0.6)',
             border: '2px solid rgba(108, 60, 225, 0.3)',
@@ -177,8 +322,8 @@ function Step1Email({
           type="password"
           value={password}
           onChange={(e) => onChange(email, e.target.value)}
-          placeholder="パスワード"
-          className="w-full h-14 px-5 rounded-2xl text-base font-medium"
+          placeholder="パスワード（8文字以上）"
+          className="w-full h-14 px-5 rounded-2xl text-base font-medium outline-none"
           style={{
             background: 'rgba(42, 42, 90, 0.6)',
             border: '2px solid rgba(108, 60, 225, 0.3)',
@@ -187,14 +332,22 @@ function Step1Email({
         />
       </div>
 
+      {error && (
+        <div className="w-full flex items-center gap-2 p-3 rounded-xl text-sm"
+             style={{ background: 'rgba(255, 212, 59, 0.15)', color: '#FFD43B' }}>
+          <span>&#9888;</span>
+          <span>{error}</span>
+        </div>
+      )}
+
       <CosmicButton
         variant="primary"
         size="lg"
         className="w-full"
-        disabled={!email || !password}
+        disabled={!email || !password || password.length < 8 || saving}
         onClick={onNext}
       >
-        つぎへ
+        {saving ? 'アカウント作成中...' : 'つぎへ'}
       </CosmicButton>
     </div>
   );
@@ -214,7 +367,6 @@ function Step2Role({
       </h2>
 
       <div className="flex gap-4 w-full">
-        {/* Parent */}
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => onChange('parent')}
@@ -232,7 +384,6 @@ function Step2Role({
           <span className="text-sm font-bold" style={{ color: '#F0F0FF' }}>おやです</span>
         </motion.button>
 
-        {/* Supporter */}
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => onChange('supporter')}
@@ -274,7 +425,7 @@ function Step3ChildName({
         value={name}
         onChange={(e) => onChange(e.target.value)}
         placeholder="なまえ"
-        className="w-full h-16 px-5 rounded-2xl text-xl font-bold text-center"
+        className="w-full h-16 px-5 rounded-2xl text-xl font-bold text-center outline-none"
         style={{
           background: 'rgba(42, 42, 90, 0.6)',
           border: '2px solid rgba(108, 60, 225, 0.3)',
@@ -307,7 +458,6 @@ function Step4Birthday({
       </h2>
 
       <div className="flex gap-3 w-full">
-        {/* Year */}
         <select
           value={year}
           onChange={(e) => onChange(Number(e.target.value), month, day)}
@@ -321,7 +471,6 @@ function Step4Birthday({
           {years.map(y => <option key={y} value={y}>{y}ねん</option>)}
         </select>
 
-        {/* Month */}
         <select
           value={month}
           onChange={(e) => onChange(year, Number(e.target.value), day)}
@@ -335,7 +484,6 @@ function Step4Birthday({
           {months.map(m => <option key={m} value={m}>{m}がつ</option>)}
         </select>
 
-        {/* Day */}
         <select
           value={day}
           onChange={(e) => onChange(year, month, Number(e.target.value))}
@@ -389,7 +537,6 @@ function Step5Disability({
         あとからいつでも変更できます（任意）
       </p>
 
-      {/* Disability chips */}
       <div>
         <p className="text-sm font-medium mb-2" style={{ color: '#B8B8D0' }}>しょうがいの しゅるい</p>
         <div className="flex flex-wrap gap-2">
@@ -410,7 +557,6 @@ function Step5Disability({
         </div>
       </div>
 
-      {/* Severity */}
       {disabilities.length > 0 && (
         <div>
           <p className="text-sm font-medium mb-2" style={{ color: '#B8B8D0' }}>ていど</p>
@@ -433,7 +579,6 @@ function Step5Disability({
         </div>
       )}
 
-      {/* Traits */}
       <div>
         <p className="text-sm font-medium mb-2" style={{ color: '#B8B8D0' }}>とくせい</p>
         <div className="flex flex-wrap gap-2">
@@ -466,9 +611,9 @@ function Step5Disability({
 }
 
 function Step6Avatar({
-  avatarId, onChange, onNext,
+  avatarId, error, saving, onChange, onNext,
 }: {
-  avatarId: string;
+  avatarId: string; error: string; saving: boolean;
   onChange: (id: string) => void;
   onNext: () => void;
 }) {
@@ -492,8 +637,16 @@ function Step6Avatar({
         ))}
       </div>
 
-      <CosmicButton variant="star" size="lg" className="w-full" onClick={onNext}>
-        ぼうけん スタート！
+      {error && (
+        <div className="w-full flex items-center gap-2 p-3 rounded-xl text-sm"
+             style={{ background: 'rgba(255, 212, 59, 0.15)', color: '#FFD43B' }}>
+          <span>&#9888;</span>
+          <span>{error}</span>
+        </div>
+      )}
+
+      <CosmicButton variant="star" size="lg" className="w-full" disabled={saving} onClick={onNext}>
+        {saving ? '保存中...' : 'ぼうけん スタート！'}
       </CosmicButton>
     </div>
   );

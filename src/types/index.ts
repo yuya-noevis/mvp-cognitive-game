@@ -371,6 +371,52 @@ export interface MasteryCriteria {
 /** ドメインごとの習熟レベル（5段階） */
 export type MasteryLevel = 1 | 2 | 3 | 4 | 5;
 
+// ============================================
+// Biometric Types - 生体情報
+// ============================================
+
+/** Biometric input for DDA integration */
+export interface BiometricInput {
+  attentionScore?: number;   // 0-100
+  cognitiveLoad?: number;    // 0-100
+  arousalLevel?: number;     // 0-100
+}
+
+/** Biometric snapshot for DB storage */
+export interface BiometricSnapshot {
+  sessionId: string;
+  anonChildId: string;
+  tsMs: number;
+  pupilDiameter?: number;
+  heartRateBpm?: number;
+  attentionScore?: number;
+  cognitiveLoad?: number;
+  arousalLevel?: number;
+  rawData?: Record<string, unknown>;
+}
+
+// ============================================
+// 4-Axis Cognitive Score Types - 4軸認知スコア
+// ============================================
+
+/** Score trend direction */
+export type ScoreTrend = 'improving' | 'stable' | 'declining';
+
+/** Confidence level for score reliability */
+export type ScoreConfidence = 'high' | 'medium' | 'low';
+
+/** 4-axis domain score (Score / Confidence / Load / Need) */
+export interface DomainScore {
+  domain: CognitiveDomain;
+  score: number;           // 0-100: performance
+  scoreTrend: ScoreTrend;
+  confidence: ScoreConfidence;
+  load: number;            // 0-100: fatigue/stress
+  need: number;            // 0-100: support priority
+  lastAssessedAt: string;
+  sessionCount7d: number;
+}
+
 /** ドメイン進捗追跡 */
 export interface DomainProgress {
   domain: CognitiveDomain;

@@ -4,6 +4,9 @@
  * 科学的根拠：ターゲット正答率70〜85%を維持することで、
  * Zone of Proximal Development（最近接発達領域）内での学習を促進。
  * 調整は1ステップずつ行い、急激な変化を避ける。
+ *
+ * Biometric extension: optional attention/cognitiveLoad/arousal input
+ * triggers difficulty adjustment when sustained thresholds are met.
  */
 
 import type {
@@ -14,6 +17,7 @@ import type {
   AdaptiveChangeReason,
 } from '@/types';
 import { computeAccuracy } from '@/lib/utils';
+import type { BiometricInput } from '@/features/camera/types';
 
 /** Accuracy zone for boundary-cross detection */
 type AccuracyZone = 'above' | 'below' | 'in_range';
@@ -23,6 +27,14 @@ export class DDAEngine {
   private currentParams: DifficultyParams;
   private trialResults: boolean[] = [];
   private lastAccuracyZone: AccuracyZone | null = null;
+
+  // Biometric tracking
+  private consecutiveLowAttention = 0;
+  private consecutiveHighLoad = 0;
+  private biometricAdjustedThisTrial = false;
+  private readonly BIOMETRIC_TRIGGER_COUNT = 3;
+  private readonly LOW_ATTENTION_THRESHOLD = 30;
+  private readonly HIGH_LOAD_THRESHOLD = 80;
 
   constructor(config: DDAConfig) {
     this.config = config;
@@ -46,6 +58,7 @@ export class DDAEngine {
   /** Record a trial result and check if adjustment is needed */
   recordTrialResult(isCorrect: boolean): AdaptiveChange | null {
     this.trialResults.push(isCorrect);
+    this.biometricAdjustedThisTrial = false;
 
     const minTrials = Math.max(
       this.config.min_trials_before_adjust,
@@ -78,6 +91,41 @@ export class DDAEngine {
   forceReduceDifficulty(): AdaptiveChange | null {
     const accuracy = computeAccuracy(this.trialResults, this.config.window_size);
     return this.adjustDifficulty('down', accuracy, 'frustration_detected');
+  }
+
+  /**
+   * Record biometric input and check if adjustment is needed.
+   * Max 1 step per trial to prevent cascading.
+   */
+  recordBiometricInput(input: BiometricInput): AdaptiveChange | null {
+    if (this.biometricAdjustedThisTrial) return null;
+
+    // Track consecutive low attention
+    if (input.attentionScore !== undefined && input.attentionScore < this.LOW_ATTENTION_THRESHOLD) {
+      this.consecutiveLowAttention++;
+    } else {
+      this.consecutiveLowAttention = 0;
+    }
+
+    // Track consecutive high cognitive load
+    if (input.cognitiveLoad !== undefined && input.cognitiveLoad > this.HIGH_LOAD_THRESHOLD) {
+      this.consecutiveHighLoad++;
+    } else {
+      this.consecutiveHighLoad = 0;
+    }
+
+    // Trigger adjustment after N consecutive readings
+    if (this.consecutiveLowAttention >= this.BIOMETRIC_TRIGGER_COUNT ||
+        this.consecutiveHighLoad >= this.BIOMETRIC_TRIGGER_COUNT) {
+      this.biometricAdjustedThisTrial = true;
+      this.consecutiveLowAttention = 0;
+      this.consecutiveHighLoad = 0;
+
+      const accuracy = computeAccuracy(this.trialResults, this.config.window_size);
+      return this.adjustDifficulty('down', accuracy, 'frustration_detected');
+    }
+
+    return null;
   }
 
   /** Adjust difficulty by 1 step in the given direction */
@@ -147,6 +195,9 @@ export class DDAEngine {
     this.trialResults = [];
     this.lastAccuracyZone = null;
     this.currentParams = this.getInitialParams();
+    this.consecutiveLowAttention = 0;
+    this.consecutiveHighLoad = 0;
+    this.biometricAdjustedThisTrial = false;
   }
 
   /** Get the current accuracy over the window */

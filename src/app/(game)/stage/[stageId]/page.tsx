@@ -2,13 +2,13 @@
 
 import React, { useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import type { AgeGroup, GameId } from '@/types';
+import type { AgeGroup } from '@/types';
 import { useStageSession } from '@/features/stage-system/useStageSession';
 import { VisualSchedule } from '@/components/stage/VisualSchedule';
 import { StageBreak } from '@/components/stage/StageBreak';
 import { StageCelebration } from '@/components/stage/StageCelebration';
-import { GAME_CONFIGS } from '@/games';
 import { PlayIcon } from '@/components/icons';
+import { useChildProfile } from '@/hooks/useChildProfile';
 
 // Dynamic imports for all game components
 import dynamic from 'next/dynamic';
@@ -35,19 +35,19 @@ export default function StagePage() {
   const params = useParams();
   const router = useRouter();
   const stageNumber = parseInt(params.stageId as string, 10) || 1;
+  const { child, loading: childLoading } = useChildProfile();
 
-  // TODO: Get from child profile after auth implementation
-  const ageGroup: AgeGroup = '6-9';
+  const ageGroup: AgeGroup = child?.ageGroup ?? '6-9';
 
   const stage = useStageSession({ ageGroup, stageNumber });
 
   // Start stage on mount if not started
   React.useEffect(() => {
-    if (!stage.stageState) {
+    if (!stage.stageState && !childLoading) {
       stage.startStage(stageNumber);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stageNumber]);
+  }, [stageNumber, childLoading]);
 
   const handleGameComplete = useCallback((accuracy: number) => {
     stage.completeCurrentGame(accuracy);
@@ -62,13 +62,20 @@ export default function StagePage() {
     router.push('/select');
   }, [stage, router]);
 
+  if (childLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-space">
+        <div className="animate-gentle-pulse" style={{ color: '#B8B8D0' }}>読み込み中...</div>
+      </div>
+    );
+  }
+
   // Not initialized yet
   if (!stage.stageState) {
     return (
-      <div data-theme="duo" className="flex min-h-screen items-center justify-center"
-           style={{ background: 'var(--color-bg)' }}>
+      <div className="flex min-h-screen items-center justify-center bg-space">
         <div className="animate-gentle-pulse">
-          <PlayIcon size={40} style={{ color: 'var(--duo-node-active, var(--color-primary))' }} />
+          <PlayIcon size={40} style={{ color: '#6C3CE1' }} />
         </div>
       </div>
     );
@@ -80,26 +87,22 @@ export default function StagePage() {
     const nextGame = stage.currentGame;
 
     return (
-      <div data-theme="duo">
-        <StageBreak
-          completedGame={prevGame}
-          nextGame={nextGame}
-          onContinue={handleBreakContinue}
-        />
-      </div>
+      <StageBreak
+        completedGame={prevGame}
+        nextGame={nextGame}
+        onContinue={handleBreakContinue}
+      />
     );
   }
 
   // Celebration
   if (stage.isCelebrating && stage.stageState) {
     return (
-      <div data-theme="duo">
-        <StageCelebration
-          games={stage.stageState.games}
-          stageNumber={stage.stageState.stageNumber}
-          onComplete={handleCelebrationComplete}
-        />
-      </div>
+      <StageCelebration
+        games={stage.stageState.games}
+        stageNumber={stage.stageState.stageNumber}
+        onComplete={handleCelebrationComplete}
+      />
     );
   }
 
@@ -116,9 +119,8 @@ export default function StagePage() {
 
     if (!GameComponent) {
       return (
-        <div data-theme="duo" className="flex min-h-screen flex-col items-center justify-center p-8"
-             style={{ background: 'var(--color-bg)' }}>
-          <p className="text-lg" style={{ color: 'var(--color-text-muted)' }}>
+        <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-space">
+          <p className="text-lg" style={{ color: '#8888AA' }}>
             ゲームを読み込み中...
           </p>
         </div>
@@ -126,11 +128,11 @@ export default function StagePage() {
     }
 
     return (
-      <div data-theme="duo" className="flex min-h-screen flex-col" style={{ background: 'var(--color-bg)' }}>
+      <div className="flex min-h-screen flex-col bg-space">
         {/* Stage visual schedule bar */}
         <div style={{
-          background: 'var(--color-surface)',
-          borderBottom: '1px solid var(--color-border-light, rgba(255,255,255,0.1))',
+          background: 'rgba(42, 42, 90, 0.6)',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}>
           <VisualSchedule
             games={stage.stageState.games}

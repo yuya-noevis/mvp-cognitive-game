@@ -62,6 +62,44 @@ export const DOMAIN_LABELS: Record<string, string> = Object.fromEntries(
   COGNITIVE_DOMAINS.map(d => [d.key, `${d.labelKana}（${d.label}）`])
 );
 
+/** Prompt-3 display names for parent dashboard (friendly names) */
+export const DOMAIN_DISPLAY_NAMES: Record<string, string> = {
+  attention: '注意力',
+  inhibition: 'がまん力',
+  working_memory: '作業記憶',
+  visuospatial: '空間認知',
+  cognitive_flexibility: '切り替え力',
+  processing_speed: '処理スピード',
+  memory: '記憶力',
+  planning: '計画力',
+  reasoning: '推論力',
+  problem_solving: '問題解決',
+  perceptual: '知覚力',
+  language: 'ことば',
+  social_cognition: '社会理解',
+  emotion_regulation: '感情調整',
+  motor_skills: '運動スキル',
+};
+
+/** Domain to game ID mapping */
+export const DOMAIN_GAME_MAP: Record<string, string> = {
+  attention: 'hikari-catch',
+  inhibition: 'matte-stop',
+  working_memory: 'oboete-narabete',
+  visuospatial: 'katachi-sagashi',
+  cognitive_flexibility: 'irokae-switch',
+  processing_speed: 'hayawaza-touch',
+  memory: 'oboete-match',
+  planning: 'tsumitage-tower',
+  reasoning: 'pattern-puzzle',
+  problem_solving: 'meiro-tanken',
+  perceptual: 'kakurenbo-katachi',
+  language: 'kotoba-catch',
+  social_cognition: 'kimochi-yomitori',
+  emotion_regulation: 'kimochi-stop',
+  motor_skills: 'touch-de-go',
+};
+
 // ============================================
 // Stage System Constants - ステージ制
 // ============================================

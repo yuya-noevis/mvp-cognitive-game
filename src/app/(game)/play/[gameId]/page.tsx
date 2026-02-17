@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import type { GameId, AgeGroup } from '@/types';
 import { GAME_CONFIGS } from '@/games';
 import { SearchIcon } from '@/components/icons';
+import { useChildProfile } from '@/hooks/useChildProfile';
 
 // Lazy load all game components for performance
 const GAME_COMPONENTS: Record<GameId, React.ComponentType<{ ageGroup: AgeGroup; maxTrials?: number }>> = {
@@ -29,9 +30,9 @@ const GAME_COMPONENTS: Record<GameId, React.ComponentType<{ ageGroup: AgeGroup; 
 export default function GamePlayPage() {
   const params = useParams();
   const gameId = params.gameId as GameId;
+  const { child, loading } = useChildProfile();
 
-  // TODO: Get from child profile after auth implementation
-  const ageGroup: AgeGroup = '6-9';
+  const ageGroup: AgeGroup = child?.ageGroup ?? '6-9';
 
   const GameComponent = GAME_COMPONENTS[gameId];
   const config = GAME_CONFIGS[gameId];
@@ -39,15 +40,22 @@ export default function GamePlayPage() {
   // Use stage_trial_count for appropriate trial length
   const maxTrials = config?.stage_trial_count?.[ageGroup] ?? config?.trial_count_range?.max;
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-space">
+        <div className="animate-gentle-pulse" style={{ color: '#B8B8D0' }}>読み込み中...</div>
+      </div>
+    );
+  }
+
   if (!GameComponent) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-8 animate-fade-in"
-           style={{ background: 'var(--color-bg)' }}>
+      <div className="flex min-h-screen flex-col items-center justify-center p-8 animate-fade-in bg-space">
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-             style={{ background: 'var(--color-warning-bg)' }}>
-          <SearchIcon size={32} style={{ color: 'var(--color-warning)' }} />
+             style={{ background: 'rgba(255, 212, 59, 0.15)' }}>
+          <SearchIcon size={32} style={{ color: '#FFD43B' }} />
         </div>
-        <p className="text-lg font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+        <p className="text-lg font-medium" style={{ color: '#B8B8D0' }}>
           ゲームが見つかりません
         </p>
       </div>
