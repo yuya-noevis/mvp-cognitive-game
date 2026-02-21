@@ -2,6 +2,43 @@ import { supabase } from './client';
 import type { DifficultyParams, SessionSummary, SessionEndReason, GameId } from '@/types';
 import { isSupabaseEnabled } from './client';
 
+/** Recent session row for library/record display */
+export interface RecentSessionRow {
+  id: string;
+  game_id: GameId;
+  started_at: string;
+  end_reason: string | null;
+  summary: Record<string, unknown> | null;
+}
+
+/** Fetch recent sessions for a child (for きろく / library) */
+export async function getRecentSessions(
+  anonChildId: string,
+  limit = 20,
+): Promise<RecentSessionRow[]> {
+  if (!isSupabaseEnabled) return [];
+
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('id, game_id, started_at, end_reason, summary')
+    .eq('anon_child_id', anonChildId)
+    .order('started_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Failed to fetch recent sessions:', error);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    game_id: row.game_id as GameId,
+    started_at: row.started_at,
+    end_reason: row.end_reason,
+    summary: (row.summary as Record<string, unknown>) ?? null,
+  }));
+}
+
 /** Create a new game session in the database */
 export async function createGameSession(
   anonChildId: string,

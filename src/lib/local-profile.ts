@@ -65,3 +65,14 @@ export function getLocalChildSettings(): ChildSettings | null {
 export function setLocalChildSettings(settings: ChildSettings) {
   saveJson(KEY_SETTINGS, settings);
 }
+
+export function clearLocalProfile() {
+  if (!canUseStorage()) return;
+  try {
+    window.localStorage.removeItem(KEY_CHILD);
+    window.localStorage.removeItem(KEY_SETTINGS);
+    window.localStorage.removeItem(KEY_CONSENTS);
+  } catch {
+    // ignore
+  }
+}

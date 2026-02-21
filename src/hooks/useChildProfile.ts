@@ -23,13 +23,22 @@ interface UseChildProfileResult {
 
 let cachedChild: ChildProfile | null = null;
 
+export function clearChildCache() {
+  cachedChild = null;
+}
+
 export function useChildProfile(): UseChildProfileResult {
   const [child, setChild] = useState<ChildProfile | null>(cachedChild);
   const [loading, setLoading] = useState(!cachedChild);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (cachedChild) return;
+    if (cachedChild) {
+      // Ensure state is synced with cache
+      setChild(cachedChild);
+      setLoading(false);
+      return;
+    }
 
     async function fetchChild() {
       try {

@@ -1,9 +1,25 @@
 import type { DifficultyParams } from '@/types';
 import { shuffle, randomInt } from '@/lib/utils';
 
-/** Creature types used as stimuli */
-const CREATURES = ['butterfly', 'firefly', 'star', 'bird'] as const;
+/** Creature types mapped to PNG stimulus images */
+const CREATURES = ['star', 'rocket', 'ufo', 'planet'] as const;
 const COLORS = ['yellow', 'blue', 'green', 'pink'] as const;
+
+/** Get PNG image path for a creature */
+export function getCreatureImagePath(creature: string): string {
+  const creatureMap: Record<string, string> = {
+    star: '/assets/game/stimulus-star.png',
+    rocket: '/assets/game/stimulus-rocket.png',
+    ufo: '/assets/game/stimulus-ufo.png',
+    planet: '/assets/game/stimulus-planet.png',
+    alien: '/assets/game/stimulus-alien.png',
+    sun: '/assets/game/stimulus-sun.png',
+    moon: '/assets/game/stimulus-moon.png',
+    comet: '/assets/game/stimulus-comet.png',
+    'shooting-star': '/assets/game/stimulus-shooting-star.png',
+  };
+  return creatureMap[creature] || '/assets/game/stimulus-star.png';
+}
 
 export interface HikariStimulus {
   items: HikariItem[];

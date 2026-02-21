@@ -80,7 +80,7 @@ export function StageBreak({ completedGame, nextGame, onContinue }: StageBreakPr
         <div className="mb-8">
           <div className={`transition-transform duration-[4000ms] ease-in-out ${breathScale}`}>
             <Luna
-              expression="sleeping"
+              expression="sleepy"
               pose="sitting"
               size={100}
               speechBubble={breathText}

@@ -1,0 +1,523 @@
+# Manas オンボーディング v2 — 完全実装仕様書
+
+## 概要
+
+Otsimo の「1問1画面」スタイルをベンチマークとし、Manas の15認知ドメインに最適化したオンボーディングフローに全面改修する。
+
+**変更方針:**
+- 現在の7ステップ（チップ選択型）を廃止し、1問1画面の質問フローに置き換え
+- アカウント作成は最初に残す（現状通り）
+- 分析レポートは含めない → 質問完了後そのままホームへ
+- 役割選択・施設選択は削除してシンプルにする
+
+---
+
+## フロー全体構成（全25画面）
+
+```
+[Phase 0] アカウント作成（1画面）
+    ↓
+[Phase 1] PRELIMINARY — 基本情報（3画面）
+    ↓
+[Phase 2] DISABILITY — 障害・診断（3画面）
+    ↓
+[Phase 3] COGNITIVE — 認知に関する質問（8画面）
+    ↓
+[Phase 4] SOCIAL — 社会性・情動に関する質問（4画面）
+    ↓
+[Phase 5] MOTOR — 運動・感覚に関する質問（3画面）
+    ↓
+[Phase 6] TRAITS — 特性確認（2画面）
+    ↓
+[Phase 7] 完了 → ホームへ（1画面）
+```
+
+---
+
+## UI共通仕様（全画面共通）
+
+### レイアウト
+```
+┌─────────────────────────────────┐
+│ [←]  ━━━━━━━━━━━━━━━━━  (Skip) │  ← ヘッダー: 戻る + プログレスバー + Skip
+│         PHASE LABEL             │  ← フェーズラベル（色付き）
+│                                 │
+│        [イラスト/アイコン]       │  ← Moguの表情 or ドメインアイコン
+│                                 │
+│      質問テキスト（太字）        │
+│      補足テキスト（小さめ）      │
+│                                 │
+│                                 │
+│       （回答エリア）             │
+│                                 │
+│                                 │
+│  ┌──────────┐ ┌──────────┐      │
+│  │   はい   │ │  いいえ  │      │  ← Yes/No ボタン
+│  └──────────┘ └──────────┘      │
+│        わからない               │  ← テキストリンク
+└─────────────────────────────────┘
+```
+
+### プログレスバー
+- 全体の進捗を1本のバーで表示（Otsimo同様）
+- 色: cosmic (#6C3CE1) で塗り、背景は galaxy-light (#2A2A5A)
+- 高さ: 6px、角丸: full
+
+### フェーズラベル
+- プログレスバーの下に表示
+- フェーズごとに色を変える:
+  - PRELIMINARY: cosmic (#6C3CE1)
+  - DISABILITY: nebula (#FF6B9D)
+  - COGNITIVE: comet (#4ECDC4)
+  - SOCIAL: star (#FFD43B)
+  - MOTOR: aurora (#2ED573)
+  - TRAITS: cosmic-light (#8B5CF6)
+
+### 戻るボタン
+- 左上に常時表示（Phase 0 のみ非表示）
+- lucide-react の ChevronLeft または SVGアイコン
+- タップで前の質問に戻る
+
+### Skip ボタン
+- Phase 2 (DISABILITY) 以降で右上に表示
+- テキストリンク「スキップ」
+- Phase 0, 1 では非表示（必須項目のため）
+
+### 回答パターン（3種類）
+
+**A: Yes / No / わからない**
+- 「はい」「いいえ」は大きなグレー背景ボタン（横並び2つ）
+- 「わからない」はボタン下のテキストリンク（cosmic色）
+- タップ時に選択状態 → 0.3秒後に自動で次の画面へ遷移
+
+**B: 単一選択リスト**
+- 区切り線で分かれたリスト形式
+- 選択中のアイテムに cosmic色のチェックマーク表示
+- 下部に「つぎへ」ボタン
+
+**C: 複数選択チップ**
+- トグル式チップ（障害選択など）
+- 選択時: cosmic背景 + 白テキスト
+- 未選択時: galaxy-light背景 + stardust テキスト
+- 下部に「つぎへ」ボタン
+
+### アニメーション
+- 画面遷移: 左右スライド（framer-motion、現在と同じ）
+- 回答タップ時: 軽いスケールアニメーション (scale: 0.95 → 1.0)
+- プログレスバー: スムーズにアニメーション (transition: width 0.3s)
+
+### 背景
+- 全画面共通: deep-space (#0D0D2B)
+- Moguイラストの背景: なし（直接配置）
+
+---
+
+## 各画面の詳細仕様
+
+---
+
+### Phase 0: アカウント作成
+
+#### 画面 0: アカウント作成
+- **フェーズラベル**: なし
+- **イラスト**: Mogu (waving) 120px
+- **タイトル**: 「Manasへようこそ」
+- **入力**:
+  - メールアドレス（type=email）
+  - パスワード（type=password、8文字以上）
+  - パスワード表示トグル（目アイコン）
+- **ボタン**: 「アカウントを作成」（cosmic背景、白テキスト）
+- **サブリンク**: 「すでにアカウントをお持ちの方」→ /login へ
+- **バリデーション**: 現在の実装を維持
+- **Supabase処理**: signUp → signIn → 次へ
+
+---
+
+### Phase 1: PRELIMINARY（基本情報）
+
+#### 画面 1: 年齢選択
+- **フェーズラベル**: 「きほん」(cosmic色)
+- **イラスト**: Mogu (happy) 120px
+- **タイトル**: 「お子さまの年齢をおしえてください」
+- **補足**: 「お子さまに合った体験をお届けします」
+- **回答パターン**: B（単一選択リスト）
+- **選択肢**:
+  - 2歳
+  - 3歳
+  - 4歳
+  - 5歳
+  - 6歳
+  - 7歳以上
+- **保存先**: birthAge → AgeGroup に変換
+  - 2-5歳 → '3-5'
+  - 6歳 → '6-9'
+  - 7歳以上 → '6-9'
+- **Skip**: 不可
+
+#### 画面 2: お名前入力
+- **フェーズラベル**: 「きほん」
+- **イラスト**: Mogu (pointing) 100px
+- **タイトル**: 「お子さまのおなまえは？」
+- **補足**: 「ニックネームでも大丈夫です」
+- **入力**: テキストフィールド（placeholder: 「例: たろう」）
+- **ボタン**: 「つぎへ」（入力があるとき有効化）
+- **Skip**: 不可
+
+#### 画面 3: 発話レベル
+- **フェーズラベル**: 「きほん」
+- **イラスト**: Mogu (encouraging) 120px
+- **タイトル**: 「お子さまの発話の状態は？」
+- **回答パターン**: B（単一選択リスト）
+- **選択肢**:
+  - 発語なし (value: 'nonverbal')
+  - 発語なしだが、はい/いいえは伝えられる (value: 'nonverbal_yesno')
+  - 単語は出るが文にならない (value: 'single_words')
+  - 話せるが聞き取りにくいことがある (value: 'partial_verbal')
+  - 会話ができる (value: 'verbal')
+- **保存先**: speechLevel
+- **Skip**: 不可
+
+---
+
+### Phase 2: DISABILITY（障害・診断）
+
+#### 画面 4: 専門家の評価歴
+- **フェーズラベル**: 「しんだん」(nebula色)
+- **イラスト**: Mogu (surprised) 120px
+- **タイトル**: 「専門家の発達評価を受けたことはありますか？」
+- **回答パターン**: A（Yes/No/わからない）
+- **値**: 'yes' / 'no' / 'unknown'
+- **保存先**: hasEvaluation
+- **Skip**: 可
+
+#### 画面 5: 診断名の選択
+- **フェーズラベル**: 「しんだん」
+- **表示条件**: 画面4で「はい」を選んだ場合のみ。「いいえ」「わからない」の場合はスキップ
+- **イラスト**: Mogu (encouraging) 100px
+- **タイトル**: 「診断を受けているものを選んでください」
+- **補足**: 「複数選択できます。あとから変更も可能です」
+- **回答パターン**: C（複数選択チップ）
+- **選択肢**（カテゴリ見出し付き）:
+
+  **発達障害**
+  - 自閉スペクトラム症（ASD） → 'asd'
+  - ADHD（不注意優勢） → 'adhd_inattentive'
+  - ADHD（多動・衝動優勢） → 'adhd_hyperactive'
+  - ADHD（混合型） → 'adhd_combined'
+
+  **知的障害**
+  - 知的障害（軽度） → 'id_mild'
+  - 知的障害（中度） → 'id_moderate'
+  - 知的障害（重度） → 'id_severe'
+  - 知的障害（程度不明） → 'id_unspecified'
+  - 境界知能 → 'borderline_iq'
+
+  **学習障害**
+  - 読字障害（ディスレクシア） → 'ld_dyslexia'
+  - 書字障害（ディスグラフィア） → 'ld_dysgraphia'
+  - 算数障害（ディスカリキュリア） → 'ld_dyscalculia'
+
+  **その他**
+  - 発達性協調運動障害（DCD） → 'dcd'
+  - 言語発達遅滞 → 'language_delay'
+  - てんかん → 'epilepsy'
+  - その他 → 'other'
+
+- **ボタン**: 「つぎへ」
+- **保存先**: disabilities[]
+
+#### 画面 6: 気になる点（未診断の場合）
+- **フェーズラベル**: 「しんだん」
+- **表示条件**: 画面4で「いいえ」「わからない」を選んだ場合のみ
+- **イラスト**: Mogu (encouraging) 100px
+- **タイトル**: 「気になっていることはありますか？」
+- **補足**: 「あてはまるものを選んでください」
+- **回答パターン**: C（複数選択チップ）
+- **選択肢**:
+  - ことばの遅れ → 'concern_language'
+  - こだわりが強い → 'concern_rigidity'
+  - 落ち着きがない → 'concern_hyperactive'
+  - 集団になじめない → 'concern_social'
+  - 感覚の過敏さ → 'concern_sensory'
+  - 手先の不器用さ → 'concern_motor'
+  - 気持ちの切り替えが難しい → 'concern_regulation'
+  - 特にない → 'concern_none'
+- **ボタン**: 「つぎへ」
+- **保存先**: concerns[]
+
+---
+
+### Phase 3: COGNITIVE（認知に関する質問）
+
+全て Yes/No/わからない 形式（回答パターンA）。
+各質問はManasの15認知ドメインのうち、認知系ドメインの初期レベル推定に使用する。
+
+**イラスト**: 全画面共通 — Mogu (happy) 100px
+**フェーズラベル**: 「にんち」(comet色)
+**Skip**: 全画面で可
+
+#### 画面 7: 注意 (attention)
+- **質問**: 「お子さまは好きな遊びに3分以上集中できますか？」
+- **ドメイン**: attention
+- **保存先**: q_attention
+
+#### 画面 8: 抑制 (inhibition)
+- **質問**: 「『まって』と言われたとき、少しの間がまんできますか？」
+- **ドメイン**: inhibition
+- **保存先**: q_inhibition
+
+#### 画面 9: ワーキングメモリ (working_memory)
+- **質問**: 「2つの指示を続けて覚えて実行できますか？（例:『くつをはいて、かばんをもって』）」
+- **ドメイン**: working_memory
+- **保存先**: q_working_memory
+
+#### 画面 10: 記憶 (memory)
+- **質問**: 「昨日やったことを思い出して教えてくれますか？」
+- **ドメイン**: memory
+- **保存先**: q_memory
+
+#### 画面 11: 処理速度 (processing_speed)
+- **質問**: 「簡単な指示にすばやく反応できますか？（例:『手をたたいて』）」
+- **ドメイン**: processing_speed
+- **保存先**: q_processing_speed
+
+#### 画面 12: 認知的柔軟性 (cognitive_flexibility)
+- **質問**: 「遊びやルールが変わったとき、切り替えられますか？」
+- **ドメイン**: cognitive_flexibility
+- **保存先**: q_cognitive_flexibility
+
+#### 画面 13: 推論 (reasoning)
+- **質問**: 「簡単なパターンやルールに気づきますか？（例: 赤→青→赤→？）」
+- **ドメイン**: reasoning
+- **保存先**: q_reasoning
+
+#### 画面 14: 視空間 (visuospatial)
+- **質問**: 「三角や四角などの形を見分けられますか？」
+- **ドメイン**: visuospatial
+- **保存先**: q_visuospatial
+
+---
+
+### Phase 4: SOCIAL（社会性・情動）
+
+**イラスト**: Mogu (excited) 100px
+**フェーズラベル**: 「こころ」(star色)
+**Skip**: 全画面で可
+
+#### 画面 15: 社会認知 (social_cognition)
+- **質問**: 「他の人が泣いていたり怒っていると気づきますか？」
+- **ドメイン**: social_cognition
+- **保存先**: q_social_cognition
+
+#### 画面 16: 情動調整 (emotion_regulation)
+- **質問**: 「気持ちが高ぶったとき、少しずつ落ち着くことができますか？」
+- **ドメイン**: emotion_regulation
+- **保存先**: q_emotion_regulation
+
+#### 画面 17: 言語 (language)
+- **質問**: 「色や数字の名前をいくつか言えますか？」
+- **ドメイン**: language
+- **保存先**: q_language
+
+#### 画面 18: 計画・問題解決 (planning + problem_solving)
+- **質問**: 「簡単なパズルや型はめを自分で試しますか？」
+- **ドメイン**: planning, problem_solving
+- **保存先**: q_planning
+
+---
+
+### Phase 5: MOTOR（運動・感覚）
+
+**イラスト**: Mogu (clapping) 100px
+**フェーズラベル**: 「からだ」(aurora色)
+**Skip**: 全画面で可
+
+#### 画面 19: 運動スキル (motor_skills)
+- **質問**: 「ボタンをとめたり、小さなものをつまんだりできますか？」
+- **ドメイン**: motor_skills
+- **保存先**: q_motor_skills
+
+#### 画面 20: 知覚処理 (perceptual)
+- **質問**: 「絵の中から特定のものを見つけることができますか？（例: 『犬はどこ？』）」
+- **ドメイン**: perceptual
+- **保存先**: q_perceptual
+
+#### 画面 21: 感覚過敏チェック
+- **質問**: 「音や光、触られることにとても敏感ですか？」
+- **ドメイン**: sensory（ゲーム設定に影響）
+- **回答パターン**: A（Yes/No/わからない）
+- **保存先**: q_sensory_sensitive
+- **活用**: Yes の場合、ChildSettings に flash_disabled: true, animation_speed: 'slow' を設定
+
+---
+
+### Phase 6: TRAITS（特性確認）
+
+**フェーズラベル**: 「とくせい」(cosmic-light色)
+**Skip**: 全画面で可
+
+#### 画面 22: 行動面の特性
+- **イラスト**: Mogu (encouraging) 100px
+- **タイトル**: 「あてはまるものはありますか？」
+- **補足**: 「お子さまに合った配慮をするための質問です」
+- **回答パターン**: C（複数選択チップ）
+- **選択肢**:
+  - こだわりが強い → 'rigid_routine'
+  - かんしゃくが起きやすい → 'frequent_tantrums'
+  - じっとしているのが難しい → 'hyperactive'
+  - 気が散りやすい → 'inattentive'
+  - 不安が強い → 'high_anxiety'
+  - 特にない → 'none'
+- **ボタン**: 「つぎへ」
+- **保存先**: behavioral_traits[]
+
+#### 画面 23: 社会面の特性
+- **イラスト**: Mogu (happy) 100px
+- **タイトル**: 「人との関わりで気になることはありますか？」
+- **回答パターン**: C（複数選択チップ）
+- **選択肢**:
+  - 集団活動が苦手 → 'group_difficulty'
+  - 順番を待つのが難しい → 'difficulty_taking_turns'
+  - 目が合いにくい → 'limited_eye_contact'
+  - 名前を呼んでも反応しにくい → 'poor_name_response'
+  - 特にない → 'none'
+- **ボタン**: 「つぎへ」
+- **保存先**: social_traits[]
+
+---
+
+### Phase 7: 完了
+
+#### 画面 24: 完了画面
+- **フェーズラベル**: なし
+- **イラスト**: Mogu (excited) 160px（大きめ）
+- **タイトル**: 「準備ができました！」
+- **補足**: 「{childName}さんに合わせたトレーニングを始めましょう」
+- **ボタン**: 「はじめる」（cosmic背景、大きめ、shadow-lg）
+- **処理**:
+  1. 全回答データをまとめてSupabase保存（または localStorage）
+  2. 認知質問の回答から初期ドメインレベルを推定
+  3. ホーム画面 (/) へ遷移
+
+---
+
+## データ保存仕様
+
+### OnboardingData 型定義
+
+```typescript
+interface OnboardingDataV2 {
+  // Phase 0: アカウント
+  email: string;
+  password: string;
+
+  // Phase 1: 基本情報
+  childAge: number;           // 2-7
+  childName: string;
+  speechLevel: 'nonverbal' | 'nonverbal_yesno' | 'single_words' | 'partial_verbal' | 'verbal';
+
+  // Phase 2: 障害・診断
+  hasEvaluation: 'yes' | 'no' | 'unknown';
+  disabilities: string[];     // 画面5 or 空
+  concerns: string[];         // 画面6 or 空
+
+  // Phase 3-5: 認知・社会・運動の質問
+  // 各ドメインの回答: 'yes' | 'no' | 'unknown' | 'skipped'
+  domainAnswers: Record<string, 'yes' | 'no' | 'unknown' | 'skipped'>;
+
+  // Phase 6: 特性
+  behavioralTraits: string[];
+  socialTraits: string[];
+
+  // Phase 5 特殊
+  sensorySensitive: 'yes' | 'no' | 'unknown' | 'skipped';
+}
+```
+
+### 初期ドメインレベル推定ロジック
+
+domainAnswers の回答に基づいてDDA初期難易度を設定する:
+
+```typescript
+function estimateInitialLevel(answer: 'yes' | 'no' | 'unknown' | 'skipped'): number {
+  switch (answer) {
+    case 'yes':     return 3;  // 標準開始レベル
+    case 'no':      return 1;  // 易しめから開始
+    case 'unknown': return 2;  // やや易しめ
+    case 'skipped': return 2;  // デフォルト
+  }
+}
+```
+
+### Supabase保存先
+
+- `children` テーブル: display_name, age_group, support_needs
+- `child_profiles` テーブル: speech_level, disabilities, concerns, traits, domain_answers
+- DDAの初期レベルは `domain_progress` テーブルに反映
+
+---
+
+## 実装上の注意
+
+### Manasデザインルール厳守
+- 背景: deep-space (#0D0D2B)
+- ボタン: cosmic (#6C3CE1) 背景 or galaxy-light (#2A2A5A) 背景
+- テキスト: stardust (#F0F0FF) メイン、moon (#B8B8D0) サブ
+- macOS絵文字禁止 → Moguイラスト(PNG)を使用
+- フォント: M PLUS Rounded 1c
+- max-width: 430px
+- タップターゲット: 最小48px
+- input: 16px以上
+
+### Otsimoとの差分（意図的な変更点）
+1. **背景色**: Otsimoは白背景 → Manasはダークテーマ（宇宙）
+2. **キャラクター**: Otsimoは人物イラスト → ManasはMogu（モグラ）
+3. **フェーズ数**: Otsimoは3フェーズ → Manasは6フェーズ（ドメインが多いため）
+4. **レポート**: Otsimoは即座にレポート表示 → Manasはなし（ホーム直行）
+5. **アカウント**: Otsimoはオンボーディング後 → Manasはオンボーディング前
+
+### 条件分岐まとめ
+- 画面5（診断名選択）: 画面4で「はい」の場合のみ表示
+- 画面6（気になる点）: 画面4で「いいえ」or「わからない」の場合のみ表示
+- Skip: Phase 2以降で可能
+- 「特にない」を選択した場合、他のチップは解除される
+
+### 画面総数
+- 最短ルート（全Skip）: 画面0→1→2→3→4→24 = **6画面**
+- 最長ルート（全回答）: 画面0→1→2→3→4→5→7〜23→24 = **24画面**
+- 典型ルート: **約18-20画面**（Yes/Noなので1画面2秒程度、合計1分以内）
+
+---
+
+## プログレスバー計算
+
+全体を25ステップとして計算（条件分岐で飛ばしたステップも含む）:
+
+```typescript
+const totalSteps = 25;
+const progress = (currentStep + 1) / totalSteps;
+```
+
+条件分岐で飛ばした画面のステップ数は加算して進捗を進める。
+例: 画面4→画面6（画面5をスキップ）の場合、ステップ5→7 に一気に進む。
+
+---
+
+## Claude Code への実行指示
+
+このファイルを `docs/prompt-onboarding-v2.md` として保存済み。
+Claude Code に以下のように指示:
+
+```
+docs/prompt-onboarding-v2.md を読み込み、指示に従って src/app/onboarding/page.tsx を完全に書き直してください。
+
+注意:
+- 作業前に git add -A && git commit -m "before-onboarding-v2" を実行
+- 現在の onboarding/page.tsx は1075行あるが、全て置き換えてよい
+- OnboardingDataV2 型は onboarding/page.tsx 内に定義してよい
+- Mogu コンポーネントは既存の @/components/mascot/Mogura を使用
+- framer-motion の AnimatePresence + motion.div で画面遷移
+- CosmicProgressBar は既存を使用
+- Supabase保存ロジックは既存のパターン (isSupabaseEnabled チェック) を踏襲
+- 全てのデザインルール（カラー、フォント、タップターゲット等）を厳守
+```

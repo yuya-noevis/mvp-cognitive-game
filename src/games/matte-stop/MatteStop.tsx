@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { matteStopConfig } from './config';
 import { nowMs, randomInt } from '@/lib/utils';
-import { MatteStopIcons, FlagIcon } from '@/components/icons';
 
 interface MatteStopProps {
   ageGroup: AgeGroup;
@@ -17,7 +17,9 @@ interface MatteStopProps {
 type TrialType = 'go' | 'nogo';
 type Phase = 'ready' | 'fixation' | 'stimulus' | 'feedback' | 'iti';
 
-const ANIMAL_KEYS = ['dog', 'cat', 'rabbit', 'squirrel'] as const;
+// Go stimulus: star, NoGo stimulus: rock (PNG images)
+const GO_STIMULUS = '/assets/game/stimulus-star.png';
+const NOGO_STIMULUS = '/assets/game/stimulus-rock.png';
 
 export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteStopProps) {
   const session = useGameSession({
@@ -55,7 +57,6 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
     const isNogo = Math.random() < nogoRatio;
     const type: TrialType = isNogo ? 'nogo' : 'go';
     setTrialType(type);
-    setAnimal(ANIMAL_KEYS[randomInt(0, ANIMAL_KEYS.length - 1)]);
     setResponded(false);
 
     // Fixation cross
@@ -66,7 +67,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
       stimulusOnsetRef.current = nowMs();
 
       session.startTrial(
-        { trial_type: type, animal },
+        { trial_type: type },
         { expected_response: type === 'go' ? 'tap' : 'withhold' },
       );
       session.presentStimulus();
@@ -139,46 +140,45 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
   }, [clearTimer]);
 
   return (
-    <GameShell gameName="まって！ストップ" session={session} maxTrials={maxTrials}>
+    <GameShell gameName="まって！ストップ" gameId="matte-stop" session={session} maxTrials={maxTrials}>
       <div className="flex flex-col items-center justify-center w-full max-w-md">
         {/* Instruction */}
         <div className="mb-6 text-center">
-          <p className="text-lg font-medium" style={{ color: '#8B5CF6' }}>
-            どうぶつが きたら タップ！
+          <p className="text-lg font-medium text-cosmic-light">
+            ほしが きたら タップ!
           </p>
-          <p className="inline-flex items-center gap-1 text-base text-red-400 font-medium mt-1">
-            <FlagIcon size={16} /> あかいはた のときは まって！
+          <p className="text-base text-moon font-medium mt-1">
+            いわ のときは まって!
           </p>
         </div>
 
         {/* Stimulus area */}
         <div
           className="relative w-64 h-64 rounded-3xl flex items-center justify-center cursor-pointer select-none"
-          style={{ backgroundColor: phase === 'stimulus' ? (trialType === 'nogo' ? '#fee2e2' : 'rgba(108,60,225,0.15)') : 'rgba(42,42,90,0.2)' }}
+          style={{ backgroundColor: phase === 'stimulus' ? (trialType === 'nogo' ? 'rgba(42,42,90,0.4)' : 'rgba(108,60,225,0.15)') : 'rgba(42,42,90,0.2)' }}
           onClick={handleTap}
         >
           {phase === 'fixation' && (
-            <span className="text-4xl text-gray-400">+</span>
+            <span className="text-4xl text-moon">+</span>
           )}
 
           {phase === 'stimulus' && (
-            <div className="flex flex-col items-center">
-              {(() => {
-                const AnimalIcon = MatteStopIcons[animal];
-                return AnimalIcon ? <AnimalIcon size={72} style={{ color: 'var(--color-primary-dark)' }} /> : null;
-              })()}
-              {trialType === 'nogo' && (
-                <FlagIcon size={40} className="mt-2" style={{ color: '#f87171' }} />
-              )}
+            <div className="flex flex-col items-center animate-scale-in">
+              <Image
+                src={trialType === 'go' ? GO_STIMULUS : NOGO_STIMULUS}
+                alt={trialType === 'go' ? 'star' : 'rock'}
+                width={100}
+                height={100}
+              />
             </div>
           )}
 
           {phase === 'ready' && (
-            <span className="text-xl text-gray-400">じゅんびちゅう...</span>
+            <span className="text-xl text-moon">じゅんびちゅう...</span>
           )}
 
           {phase === 'iti' && (
-            <span className="text-2xl text-gray-300">...</span>
+            <span className="text-2xl text-moon">...</span>
           )}
         </div>
       </div>
@@ -186,6 +186,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
       {feedbackCorrect !== null && (
         <TrialFeedback
           isCorrect={feedbackCorrect}
+          variant={feedbackCorrect && trialType === 'nogo' ? 'nogo_correct' : 'normal'}
           onComplete={handleFeedbackComplete}
         />
       )}

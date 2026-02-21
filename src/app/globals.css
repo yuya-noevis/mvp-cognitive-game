@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Hide scrollbar for wheel picker */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /*
  * Manas Design System — Cosmic Space Theme
  *
@@ -150,12 +154,27 @@
   }
 }
 
-/* === Base Body === */
+/* === Base Body — Smartphone First === */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
-  background-color: var(--color-bg);
+  background-color: var(--color-galaxy);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Prevent iOS auto-zoom on inputs */
+input, select, textarea {
+  font-size: 16px !important;
 }
 
 /* === Tap targets: WCAG 2.1 AA (44px) / AAA for children (56px+) === */
@@ -557,3 +576,36 @@ body {
 .speech-enter {
   animation: popIn 0.4s var(--ease-bounce) both;
 }
+
+/* Shake animation for incorrect answers */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  16% { transform: translateX(-4px); }
+  33% { transform: translateX(4px); }
+  50% { transform: translateX(-4px); }
+  66% { transform: translateX(4px); }
+  83% { transform: translateX(-4px); }
+}
+.animate-shake { animation: shake 0.3s ease-in-out; }
+
+/* Particle burst for correct answers */
+@keyframes particleBurst {
+  0% { opacity: 1; transform: scale(0) translate(0, 0); }
+  50% { opacity: 1; transform: scale(1) translate(var(--tx), var(--ty)); }
+  100% { opacity: 0; transform: scale(0) translate(var(--tx2), var(--ty2)); }
+}
+.animate-particle-burst { animation: particleBurst 0.6s ease-out forwards; }
+
+/* Rocket fly animation */
+@keyframes rocketFly {
+  0% { transform: translateY(100vh); opacity: 1; }
+  100% { transform: translateY(-100vh); opacity: 1; }
+}
+.animate-rocket-fly { animation: rocketFly 1s ease-in forwards; }
+
+/* Confetti fall animation */
+@keyframes confettiFall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+.animate-confetti-fall { animation: confettiFall 2s ease-in forwards; }

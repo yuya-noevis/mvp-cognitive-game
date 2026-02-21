@@ -95,7 +95,7 @@ export default function ConsentPage() {
 
       <div className="relative z-10 w-full max-w-lg animate-fade-in-up">
         <div className="flex justify-center mb-4">
-          <Luna expression="thinking" pose="standing" size={80} />
+          <Luna expression="encouraging" pose="standing" size={80} />
         </div>
 
         <div className="mb-6 text-center">

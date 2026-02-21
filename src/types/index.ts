@@ -51,6 +51,8 @@ export interface ChildSettings {
   flash_disabled: boolean;
   high_contrast: boolean;
   tap_target_size: 'normal' | 'large'; // large = 80px min for younger children
+  volume?: number;
+  camera_enabled?: boolean;
 }
 
 export const DEFAULT_CHILD_SETTINGS: ChildSettings = {

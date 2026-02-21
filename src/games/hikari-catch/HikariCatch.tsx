@@ -1,26 +1,19 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { hikariCatchConfig } from './config';
-import { generateHikariStimulus, type HikariStimulus, type HikariItem } from './stimuli';
+import { generateHikariStimulus, getCreatureImagePath, type HikariStimulus, type HikariItem } from './stimuli';
 import { nowMs } from '@/lib/utils';
-import { HikariCatchIcons } from '@/components/icons';
 
 interface HikariCatchProps {
   ageGroup: AgeGroup;
   maxTrials?: number;
 }
-
-const COLOR_CLASSES: Record<string, string> = {
-  yellow: 'bg-yellow-200 border-yellow-400',
-  blue: 'bg-blue-200 border-blue-400',
-  green: 'bg-green-200 border-green-400',
-  pink: 'bg-pink-200 border-pink-400',
-};
 
 type Phase = 'ready' | 'showing' | 'feedback' | 'waiting';
 
@@ -105,12 +98,12 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
   }, []);
 
   return (
-    <GameShell gameName="ひかりキャッチ" session={session} maxTrials={maxTrials}>
+    <GameShell gameName="ひかりキャッチ" gameId="hikari-catch" session={session} maxTrials={maxTrials}>
       {/* Target instruction */}
       <div className="mb-4 text-center">
-        <span className="inline-flex items-center gap-1 text-lg font-medium" style={{ color: '#8B5CF6' }}>
-          {(() => { const ButterflyIcon = HikariCatchIcons.butterfly; return <ButterflyIcon size={24} />; })()}
-          をタップしよう！
+        <span className="inline-flex items-center gap-2 text-lg font-medium text-cosmic-light">
+          <Image src={getCreatureImagePath('star')} alt="" width={28} height={28} />
+          をタップしよう!
         </span>
       </div>
 
@@ -121,28 +114,31 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
           <button
             key={item.id}
             onClick={() => handleTap(item)}
-            className={`absolute tap-target-large rounded-full border-4 flex items-center justify-center
-              transition-transform active:scale-90
-              ${COLOR_CLASSES[item.color] || 'bg-gray-200 border-gray-400 bg-opacity-60'}`}
+            className="absolute tap-target-large rounded-full flex items-center justify-center
+              transition-transform active:scale-90"
             style={{
               left: `${item.position.x}%`,
               top: `${item.position.y}%`,
               transform: 'translate(-50%, -50%)',
               width: '80px',
               height: '80px',
+              background: item.isTarget ? 'rgba(108,60,225,0.2)' : 'rgba(42,42,90,0.3)',
+              border: item.isTarget ? '3px solid rgba(108,60,225,0.4)' : '3px solid rgba(255,255,255,0.1)',
             }}
             aria-label={item.isTarget ? 'ターゲット' : ''}
           >
-            {(() => {
-              const CreatureIcon = HikariCatchIcons[item.creature];
-              return CreatureIcon ? <CreatureIcon size={32} /> : <span>?</span>;
-            })()}
+            <Image
+              src={getCreatureImagePath(item.creature)}
+              alt={item.creature}
+              width={48}
+              height={48}
+            />
           </button>
         ))}
 
         {phase === 'ready' && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-2xl" style={{ color: '#8B5CF6' }}>つぎの おともだちが くるよ...</span>
+            <span className="text-xl text-cosmic-light">つぎの おともだちが くるよ...</span>
           </div>
         )}
       </div>

@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
-import { ColorDotIcon } from '@/components/icons';
 import { oboeteMatchConfig } from './config';
 import { nowMs, shuffle, randomInt } from '@/lib/utils';
 
@@ -18,17 +18,19 @@ interface OboeteMatchProps {
 
 type Phase = 'ready' | 'sample' | 'delay' | 'choice' | 'feedback';
 
-// Stimulus patterns: colored shape combinations
+// Stimulus patterns using PNG images
 const PATTERNS = [
-  { color: '#ef4444', label: 'red-circle' },
-  { color: '#eab308', label: 'yellow-circle' },
-  { color: '#3b82f6', label: 'blue-circle' },
-  { color: '#22c55e', label: 'green-circle' },
-  { color: '#a855f7', label: 'purple-circle' },
-  { color: '#f97316', label: 'orange-circle' },
-  { color: '#1f2937', label: 'black-square' },
-  { color: '#92400e', label: 'brown-circle' },
+  { image: '/assets/game/stimulus-star.png', label: 'star' },
+  { image: '/assets/game/stimulus-rocket.png', label: 'rocket' },
+  { image: '/assets/game/stimulus-ufo.png', label: 'ufo' },
+  { image: '/assets/game/stimulus-planet.png', label: 'planet' },
+  { image: '/assets/game/stimulus-alien.png', label: 'alien' },
+  { image: '/assets/game/stimulus-sun.png', label: 'sun' },
+  { image: '/assets/game/stimulus-moon.png', label: 'moon' },
+  { image: '/assets/game/stimulus-comet.png', label: 'comet' },
 ];
+
+const CARD_BACK = '/assets/game/card-back.png';
 
 interface Choice {
   id: string;
@@ -128,30 +130,28 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
   useEffect(() => { return clearTimer; }, [clearTimer]);
 
   return (
-    <GameShell gameName="おぼえてマッチ" session={session}
+    <GameShell gameName="おぼえてマッチ" gameId="oboete-match" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
       <div className="flex flex-col items-center w-full max-w-md">
         {/* Sample display */}
         {phase === 'sample' && samplePattern && (
           <div className="text-center mb-6">
-            <p className="text-lg font-medium mb-3" style={{ color: 'var(--color-primary-dark)' }}>
-              これを おぼえてね！
+            <p className="text-lg font-medium mb-3 text-cosmic-light">
+              これを おぼえてね!
             </p>
-            <div className="w-32 h-32 rounded-3xl flex items-center justify-center mx-auto"
-                 style={{ background: 'var(--color-primary-bg)' }}>
-              <ColorDotIcon color={samplePattern.color} size={80} />
+            <div className="w-32 h-32 rounded-3xl flex items-center justify-center mx-auto bg-galaxy-light">
+              <Image src={samplePattern.image} alt={samplePattern.label} width={80} height={80} />
             </div>
           </div>
         )}
 
-        {/* Delay phase */}
+        {/* Delay phase — show card back */}
         {phase === 'delay' && (
           <div className="text-center mb-6">
-            <div className="w-32 h-32 rounded-3xl flex items-center justify-center mx-auto animate-gentle-pulse"
-                 style={{ background: 'var(--color-border-light)' }}>
-              <span className="text-4xl" style={{ color: 'var(--color-text-muted)' }}>?</span>
+            <div className="w-32 h-32 rounded-3xl flex items-center justify-center mx-auto animate-gentle-pulse bg-galaxy-light">
+              <Image src={CARD_BACK} alt="card back" width={80} height={80} />
             </div>
-            <p className="text-base mt-3" style={{ color: 'var(--color-text-muted)' }}>
+            <p className="text-base mt-3 text-moon">
               おぼえてるかな...
             </p>
           </div>
@@ -160,8 +160,8 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
         {/* Choice phase */}
         {phase === 'choice' && (
           <div className="text-center">
-            <p className="text-lg font-medium mb-4" style={{ color: 'var(--color-primary-dark)' }}>
-              おなじものは どれ？
+            <p className="text-lg font-medium mb-4 text-cosmic-light">
+              おなじものは どれ?
             </p>
             <div className="grid grid-cols-2 gap-4">
               {choices.map(choice => (
@@ -169,10 +169,9 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
                   key={choice.id}
                   onClick={() => handleSelect(choice)}
                   className="tap-target-large w-24 h-24 rounded-2xl flex items-center justify-center
-                    border-4 active:scale-95 transition-all"
-                  style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border-light)' }}
+                    border-2 border-galaxy-light active:scale-95 transition-all bg-galaxy-light"
                 >
-                  <ColorDotIcon color={choice.pattern.color} size={56} />
+                  <Image src={choice.pattern.image} alt={choice.pattern.label} width={56} height={56} />
                 </button>
               ))}
             </div>
@@ -182,7 +181,7 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
         {/* Ready state */}
         {phase === 'ready' && (
           <div className="text-center">
-            <span className="text-2xl" style={{ color: 'var(--color-text-muted)' }}>
+            <span className="text-xl text-moon">
               じゅんびちゅう...
             </span>
           </div>
