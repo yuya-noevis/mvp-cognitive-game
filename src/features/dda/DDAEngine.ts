@@ -18,15 +18,19 @@ import type {
 } from '@/types';
 import { computeAccuracy } from '@/lib/utils';
 import type { BiometricInput } from '@/features/camera/types';
+import type { DDAProfile } from './disability-profile';
+import { DDA_PROFILES } from './disability-profile';
 
 /** Accuracy zone for boundary-cross detection */
 type AccuracyZone = 'above' | 'below' | 'in_range';
 
 export class DDAEngine {
   private config: DDAConfig;
+  private profile: DDAProfile;
   private currentParams: DifficultyParams;
   private trialResults: boolean[] = [];
   private lastAccuracyZone: AccuracyZone | null = null;
+  private consecutiveFailures = 0;
 
   // Biometric tracking
   private consecutiveLowAttention = 0;
@@ -36,8 +40,14 @@ export class DDAEngine {
   private readonly LOW_ATTENTION_THRESHOLD = 30;
   private readonly HIGH_LOAD_THRESHOLD = 80;
 
-  constructor(config: DDAConfig) {
-    this.config = config;
+  constructor(config: DDAConfig, profile?: DDAProfile) {
+    this.profile = profile ?? DDA_PROFILES['unknown'];
+    // Merge profile target accuracy into config copy
+    this.config = {
+      ...config,
+      target_accuracy_min: this.profile.targetAccuracyMin,
+      target_accuracy_max: this.profile.targetAccuracyMax,
+    };
     this.currentParams = this.getInitialParams();
   }
 
@@ -59,6 +69,21 @@ export class DDAEngine {
   recordTrialResult(isCorrect: boolean): AdaptiveChange | null {
     this.trialResults.push(isCorrect);
     this.biometricAdjustedThisTrial = false;
+
+    // Track consecutive failures for emergency ease
+    if (!isCorrect) {
+      this.consecutiveFailures++;
+    } else {
+      this.consecutiveFailures = 0;
+    }
+
+    // Emergency ease: consecutive failures exceed threshold → immediate ease
+    if (this.consecutiveFailures >= this.profile.emergencyEaseThreshold) {
+      this.consecutiveFailures = 0;
+      const accuracy = computeAccuracy(this.trialResults, this.config.window_size);
+      const change = this.adjustDifficulty('down', accuracy, 'frustration_detected');
+      if (change) return change;
+    }
 
     const minTrials = Math.max(
       this.config.min_trials_before_adjust,
@@ -190,11 +215,25 @@ export class DDAEngine {
     return null;
   }
 
+  /**
+   * Adjust start level based on warmup results.
+   * Negative adjustment = ease difficulty by |adjustment| steps.
+   */
+  adjustStartLevel(adjustment: number): void {
+    if (adjustment >= 0) return;
+    const steps = Math.abs(adjustment);
+    for (let i = 0; i < steps; i++) {
+      const change = this.adjustDifficulty('down', 0, 'calibration');
+      if (!change) break; // already at minimum
+    }
+  }
+
   /** Reset for a new session */
   reset(): void {
     this.trialResults = [];
     this.lastAccuracyZone = null;
     this.currentParams = this.getInitialParams();
+    this.consecutiveFailures = 0;
     this.consecutiveLowAttention = 0;
     this.consecutiveHighLoad = 0;
     this.biometricAdjustedThisTrial = false;

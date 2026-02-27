@@ -45,7 +45,7 @@ function StarIcon({ size = 24, color = 'currentColor' }: { size?: number; color?
 // ---------------------------------------------------------------------------
 
 /** Routes where the nav bar should be hidden */
-const HIDDEN_ROUTES = ['/onboarding', '/login', '/consent', '/play/', '/stage/'];
+const HIDDEN_ROUTES = ['/onboarding', '/login', '/consent', '/play/', '/stage/', '/game/'];
 
 export function BottomNav() {
   const pathname = usePathname();

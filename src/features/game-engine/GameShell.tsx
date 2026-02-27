@@ -7,6 +7,7 @@ import type { GameSessionControls } from './hooks/useGameSession';
 import Mogura from '@/components/mascot/Mogura';
 import { CosmicProgressBar } from '@/components/ui/CosmicProgressBar';
 import type { GameId } from '@/types';
+import { useSessionContext } from '@/features/session/SessionContext';
 
 interface GameShellProps {
   gameName: string;
@@ -86,6 +87,7 @@ function StarParticles({ count = 25 }: { count?: number }) {
  */
 export function GameShell({ gameName, gameId, session, children, stageMode, maxTrials, onStageComplete }: GameShellProps) {
   const router = useRouter();
+  const sessionCtx = useSessionContext();
   const building = gameId ? GAME_BUILDING_MAP[gameId] || 'hikari' : 'hikari';
   const bgGradient = BUILDING_GRADIENTS[building];
 
@@ -112,6 +114,11 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
         </div>
       </div>
     );
+  }
+
+  // Session ended — defer to page-level SessionComplete if session context active
+  if (session.isSessionEnded && sessionCtx?.hideEndScreen) {
+    return null;
   }
 
   // Session ended
@@ -231,8 +238,9 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
           <Mogura expression="encouraging" size={28} />
         </div>
 
-        {/* Progress bar */}
-        <CosmicProgressBar progress={progress} className="flex-1 mx-1" />
+        {/* Progress bar — hidden when session context provides its own */}
+        {!sessionCtx && <CosmicProgressBar progress={progress} className="flex-1 mx-1" />}
+        {sessionCtx && <div className="flex-1" />}
 
         {/* Pause/settings button */}
         <button

@@ -24,15 +24,6 @@ export const TOTAL_STEPS = 25;
 
 /* ====== Option Arrays ====== */
 
-export const AGE_OPTIONS = [
-  { label: '2歳', value: '2' },
-  { label: '3歳', value: '3' },
-  { label: '4歳', value: '4' },
-  { label: '5歳', value: '5' },
-  { label: '6歳', value: '6' },
-  { label: '7歳以上', value: '7' },
-];
-
 export const SPEECH_OPTIONS = [
   { label: '発語なし', value: 'nonverbal' },
   { label: '発語なしだが、はい/いいえは伝えられる', value: 'nonverbal_yesno' },
@@ -99,13 +90,12 @@ export const SCREENS: ScreenDef[] = [
   },
   // Phase 1: Preliminary
   {
-    id: 1, type: 'single_select', phase: 'preliminary',
+    id: 1, type: 'date_picker', phase: 'preliminary',
     phaseLabel: 'きほん', phaseColor: PHASE_COLORS.preliminary,
     expression: 'happy', expressionSize: 120,
-    title: 'お子さまの年齢をおしえてください',
+    title: 'お子さまの生年月日をおしえてください',
     subtitle: 'お子さまに合った体験をお届けします',
-    dataKey: 'childAge', skippable: false,
-    options: AGE_OPTIONS,
+    dataKey: 'birthDate', skippable: false,
   },
   {
     id: 2, type: 'text_input', phase: 'preliminary',

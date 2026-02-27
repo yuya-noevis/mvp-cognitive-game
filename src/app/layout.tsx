@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { M_PLUS_Rounded_1c } from 'next/font/google';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { LayoutContent } from '@/components/ui/LayoutContent';
+import { DevToggle } from '@/components/dev/DevToggle';
 import './globals.css';
 
 const roundedMplus = M_PLUS_Rounded_1c({
@@ -35,6 +36,7 @@ export default function RootLayout({
         <div className="mx-auto max-w-[430px] min-h-dvh relative bg-deep-space">
           <LayoutContent>{children}</LayoutContent>
           <BottomNav />
+          <DevToggle />
         </div>
       </body>
     </html>

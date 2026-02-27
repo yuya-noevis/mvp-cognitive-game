@@ -8,6 +8,9 @@ import { motion } from 'framer-motion';
 import Mogura from '@/components/mascot/Mogura';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useChildProfile } from '@/hooks/useChildProfile';
+import { useTier, checkGameAccess } from '@/features/gating';
+import type { Tier } from '@/features/gating';
+import type { IntegratedGameId } from '@/games/integrated/types';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -24,55 +27,59 @@ const BUILDINGS: BuildingDef[] = [
   {
     id: 'hikari',
     image: '/assets/buildings/building-hikari.png',
-    name: '\u3072\u304B\u308A\u30E9\u30DC',
-    gameIds: ['hikari-catch', 'matte-stop', 'oboete-narabete'],
+    name: 'ひかりラボ',
+    gameIds: ['hikari-rescue'],
   },
   {
     id: 'kokoro',
     image: '/assets/buildings/building-kokoro.png',
-    name: '\u3053\u3053\u308D\u30CF\u30A6\u30B9',
-    gameIds: ['kimochi-yomitori', 'kimochi-stop'],
+    name: 'こころハウス',
+    gameIds: ['kimochi-friends', 'kotoba-ehon'],
   },
   {
     id: 'hirameki',
     image: '/assets/buildings/building-hirameki.png',
-    name: '\u3072\u3089\u3081\u304D\u30BF\u30EF\u30FC',
-    gameIds: ['irokae-switch', 'pattern-puzzle', 'tsumitage-tower', 'meiro-tanken'],
+    name: 'ひらめきタワー',
+    gameIds: ['rule-change', 'tanken-meiro'],
   },
   {
     id: 'kankaku',
     image: '/assets/buildings/building-kankaku.png',
-    name: '\u304B\u3093\u304B\u304F\u30C9\u30FC\u30E0',
-    gameIds: ['katachi-sagashi', 'kakurenbo-katachi', 'hayawaza-touch', 'touch-de-go'],
+    name: 'かんかくドーム',
+    gameIds: ['kurukuru-puzzle', 'touch-adventure'],
   },
   {
     id: 'kotoba',
     image: '/assets/buildings/building-kotoba.png',
-    name: '\u3053\u3068\u3070\u30E9\u30A4\u30D6\u30E9\u30EA',
-    gameIds: ['kotoba-catch', 'oboete-match'],
+    name: 'ことばライブラリ',
+    gameIds: ['oboete-susumu'],
   },
 ];
 
 const GAME_DISPLAY_NAMES: Record<string, string> = {
-  'hikari-catch': '\u3072\u304B\u308A\u30AD\u30E3\u30C3\u30C1',
-  'matte-stop': '\u307E\u3063\u3066\uFF01\u30B9\u30C8\u30C3\u30D7',
-  'oboete-narabete': '\u304A\u307C\u3048\u3066\u306A\u3089\u3079\u3066',
-  'kimochi-yomitori': '\u304D\u3082\u3061\u3088\u307F\u3068\u308A',
-  'kimochi-stop': '\u304D\u3082\u3061\u30B9\u30C8\u30C3\u30D7',
-  'irokae-switch': '\u3044\u308D\u304B\u3048\u30B9\u30A4\u30C3\u30C1',
-  'pattern-puzzle': '\u30D1\u30BF\u30FC\u30F3\u30D1\u30BA\u30EB',
-  'tsumitage-tower': '\u3064\u307F\u3042\u3052\u30BF\u30EF\u30FC',
-  'meiro-tanken': '\u3081\u3044\u308D\u305F\u3093\u3051\u3093',
-  'katachi-sagashi': '\u304B\u305F\u3061\u3055\u304C\u3057',
-  'kakurenbo-katachi': '\u304B\u304F\u308C\u3093\u307C\u30AB\u30BF\u30C1',
-  'hayawaza-touch': '\u306F\u3084\u308F\u3056\u30BF\u30C3\u30C1',
-  'touch-de-go': '\u30BF\u30C3\u30C1\u3067GO!',
-  'kotoba-catch': '\u3053\u3068\u3070\u30AD\u30E3\u30C3\u30C1',
-  'oboete-match': '\u304A\u307C\u3048\u3066\u30DE\u30C3\u30C1',
+  'hikari-rescue': 'ひかりレスキュー',
+  'oboete-susumu': 'おぼえてすすむ',
+  'rule-change': 'ルールチェンジ',
+  'kurukuru-puzzle': 'くるくるパズル',
+  'tanken-meiro': 'たんけんめいろ',
+  'kotoba-ehon': 'ことばとえほん',
+  'kimochi-friends': 'きもちフレンズ',
+  'touch-adventure': 'タッチアドベンチャー',
 };
 
-// For MVP all buildings are unlocked. Flip to false to enable lock styling.
-const isUnlocked = true;
+/** ビルディング内の全ゲームがアクセス可能かを判定 */
+function isBuildingUnlocked(building: BuildingDef, userTier: Tier): boolean {
+  return building.gameIds.some((gid) => {
+    const result = checkGameAccess(gid as IntegratedGameId, userTier);
+    return result.accessible;
+  });
+}
+
+/** 個別ゲームがアクセス可能かを判定 */
+function isGameAccessible(gameId: string, userTier: Tier): boolean {
+  const result = checkGameAccess(gameId as IntegratedGameId, userTier);
+  return result.accessible;
+}
 
 // ---------------------------------------------------------------------------
 // Stars component (rating placeholder)
@@ -154,6 +161,7 @@ function GearIcon({ size = 24, className = '' }: { size?: number; className?: st
 export default function Home() {
   const router = useRouter();
   const { child, loading, error } = useChildProfile();
+  const { tier, setDevTier } = useTier();
 
   // Redirect to login if no profile found (demo mode guard)
   useEffect(() => {
@@ -164,6 +172,9 @@ export default function Home() {
 
   // Bottom sheet state
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingDef | null>(null);
+
+  // ロック表示用トースト
+  const [lockToast, setLockToast] = useState('');
 
   // Parental long-press state
   const parentalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -182,23 +193,32 @@ export default function Home() {
   }, []);
 
   const handleBuildingTap = useCallback((building: BuildingDef) => {
-    if (!isUnlocked) return;
+    if (!isBuildingUnlocked(building, tier)) {
+      setLockToast('もう少し成長してから遊べるよ');
+      setTimeout(() => setLockToast(''), 2000);
+      return;
+    }
     setSelectedBuilding(building);
-  }, []);
+  }, [tier]);
 
   const handleGameTap = useCallback(
     (gameId: string) => {
+      if (!isGameAccessible(gameId, tier)) {
+        setLockToast('もう少し成長してから遊べるよ');
+        setTimeout(() => setLockToast(''), 2000);
+        return;
+      }
       setSelectedBuilding(null);
-      router.push(`/play/${gameId}`);
+      router.push(`/game/${gameId}`);
     },
-    [router],
+    [router, tier],
   );
 
   const handleBatchPlay = useCallback(() => {
     if (!selectedBuilding) return;
     const firstGame = selectedBuilding.gameIds[0];
     setSelectedBuilding(null);
-    router.push(`/play/${firstGame}`);
+    router.push(`/game/${firstGame}`);
   }, [selectedBuilding, router]);
 
   const displayName = loading ? '...' : child?.displayName ?? '\u304A\u3068\u3082\u3060\u3061';
@@ -247,7 +267,7 @@ export default function Home() {
           }}
         >
           {BUILDINGS.map((building, index) => {
-            const unlocked = building.id === 'hikari' || isUnlocked;
+            const unlocked = isBuildingUnlocked(building, tier);
 
             return (
               <motion.button
@@ -321,20 +341,26 @@ export default function Home() {
 
             {/* Game list */}
             <ul>
-              {selectedBuilding.gameIds.map((gameId) => (
-                <li key={gameId}>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between py-3 tap-interactive"
-                    onClick={() => handleGameTap(gameId)}
-                  >
-                    <span className="text-base text-stardust">
-                      {GAME_DISPLAY_NAMES[gameId] ?? gameId}
-                    </span>
-                    <StarRating count={3} />
-                  </button>
-                </li>
-              ))}
+              {selectedBuilding.gameIds.map((gameId) => {
+                const gameUnlocked = isGameAccessible(gameId, tier);
+                return (
+                  <li key={gameId}>
+                    <button
+                      type="button"
+                      className={`flex w-full items-center justify-between py-3 tap-interactive ${
+                        gameUnlocked ? '' : 'opacity-40'
+                      }`}
+                      onClick={() => handleGameTap(gameId)}
+                    >
+                      <span className="flex items-center gap-2 text-base text-stardust">
+                        {!gameUnlocked && <LockIcon size={16} />}
+                        {GAME_DISPLAY_NAMES[gameId] ?? gameId}
+                      </span>
+                      {gameUnlocked ? <StarRating count={3} /> : null}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
 
             {/* Batch play button */}
@@ -348,6 +374,35 @@ export default function Home() {
           </div>
         )}
       </BottomSheet>
+
+      {/* ---- Lock toast ---- */}
+      {lockToast && (
+        <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-2xl bg-galaxy px-6 py-3 text-sm font-medium text-stardust shadow-lg">
+          {lockToast}
+        </div>
+      )}
+
+      {/* ---- Dev tier toggle (development only) ---- */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed left-4 z-50 flex items-center gap-1 rounded-xl bg-galaxy/90 px-3 py-1.5 text-xs backdrop-blur"
+             style={{ bottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+          <span className="text-moon mr-1">Tier:</span>
+          {([1, 2, 3] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={`rounded-lg px-2 py-1 font-bold transition-colors ${
+                tier === t
+                  ? 'bg-cosmic text-white'
+                  : 'text-moon hover:bg-galaxy-light'
+              }`}
+              onClick={() => setDevTier(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ---- Parental Access (fixed bottom-right, long press) ---- */}
       <button

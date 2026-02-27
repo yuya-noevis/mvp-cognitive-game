@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import Mogura from '@/components/mascot/Mogura';
+import { useFeedbackContext } from '@/features/feedback/FeedbackContext';
 
 interface TrialFeedbackProps {
   isCorrect: boolean;
@@ -50,6 +51,19 @@ export function TrialFeedback({
 }: TrialFeedbackProps) {
   const [visible, setVisible] = useState(true);
   const [showMogura, setShowMogura] = useState(false);
+  const feedback = useFeedbackContext();
+  const feedbackTriggered = useRef(false);
+
+  // マウント時にフィードバック（音・振動）をトリガー（1回のみ）
+  useEffect(() => {
+    if (feedbackTriggered.current || !feedback) return;
+    feedbackTriggered.current = true;
+    if (isCorrect) {
+      feedback.triggerCorrect();
+    } else {
+      feedback.triggerIncorrect();
+    }
+  }, [isCorrect, feedback]);
 
   const particles = useMemo(() => {
     if (!isCorrect) return [];
@@ -166,8 +180,7 @@ export function TrialFeedback({
         </div>
       )}
 
-      {/* Sound placeholder */}
-      {/* console.log('Sound: correct.mp3') */}
+      {/* Sound/vibration handled by FeedbackContext */}
     </div>
   );
 }

@@ -6,6 +6,14 @@ import { isSupabaseEnabled, supabase } from '@/lib/supabase/client';
 import { generateAnonChildId } from '@/lib/utils';
 import { setLocalChildProfile, setLocalConsents, clearLocalProfile } from '@/lib/local-profile';
 import { clearChildCache } from '@/hooks/useChildProfile';
+import {
+  determineTier,
+  deriveDiagnosisLevel,
+  deriveLanguageUnderstanding,
+  saveTier,
+} from '@/features/gating';
+import { deriveDisabilityType } from '@/features/dda/derive-profile';
+import { saveDisabilityType } from '@/features/dda/disability-profile-store';
 import type { OnboardingDataV2, YesNoAnswer, ScreenDef } from '../types';
 import { SCREENS, TOTAL_STEPS } from '../constants';
 import {
@@ -13,6 +21,7 @@ import {
   loadFromSession,
   clearSession,
   defaultData,
+  birthDateToAge,
   ageToAgeGroup,
   estimateInitialLevel,
   buildSupportNeeds,
@@ -100,9 +109,7 @@ export function useOnboarding() {
     const screen = currentScreen;
     if (!screen) return;
 
-    if (screen.dataKey === 'childAge') {
-      setData((prev) => ({ ...prev, childAge: parseInt(value) }));
-    } else if (screen.dataKey === 'speechLevel') {
+    if (screen.dataKey === 'speechLevel') {
       setData((prev) => ({ ...prev, speechLevel: value as OnboardingDataV2['speechLevel'] }));
     }
   }, [currentScreen]);
@@ -160,7 +167,20 @@ export function useOnboarding() {
   const handleFinish = useCallback(async () => {
     setSaving(true);
     try {
-      const ageGroup = ageToAgeGroup(data.childAge);
+      const age = birthDateToAge(data.birthYear, data.birthMonth, data.birthDay);
+      const ageGroup = ageToAgeGroup(age);
+
+      // ティア判定（デモ・Supabase共通）
+      const tier = determineTier({
+        age,
+        diagnosisLevel: deriveDiagnosisLevel(data.disabilities),
+        languageUnderstanding: deriveLanguageUnderstanding(data.speechLevel),
+      });
+      saveTier(tier);
+
+      // DDAプロファイル用の障害タイプを保存
+      const disabilityType = deriveDisabilityType(data.disabilities);
+      saveDisabilityType(disabilityType);
 
       if (!isSupabaseEnabled) {
         const anonChildId = generateAnonChildId();

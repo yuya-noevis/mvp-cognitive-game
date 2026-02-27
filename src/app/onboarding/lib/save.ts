@@ -25,6 +25,14 @@ export function clearSession() {
 
 /* ====== Helpers ====== */
 
+export function birthDateToAge(year: number, month: number, day: number): number {
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const m = (today.getMonth() + 1) - month;
+  if (m < 0 || (m === 0 && today.getDate() < day)) age--;
+  return Math.max(0, age);
+}
+
 export function ageToAgeGroup(age: number): AgeGroup {
   if (age <= 5) return '3-5';
   return '6-9';
@@ -43,9 +51,11 @@ export function defaultData(): OnboardingDataV2 {
   return {
     email: '',
     password: '',
-    childAge: 4,
+    birthYear: 2021,
+    birthMonth: 1,
+    birthDay: 1,
     childName: '',
-    speechLevel: 'verbal',
+    speechLevel: '',
     hasEvaluation: 'no',
     disabilities: [],
     concerns: [],

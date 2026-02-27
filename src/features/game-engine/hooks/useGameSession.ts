@@ -15,6 +15,7 @@ import type {
 import type { TrialState } from '../types';
 import { TrialEngine } from '../TrialEngine';
 import { DDAEngine } from '@/features/dda/DDAEngine';
+import type { DDAProfile } from '@/features/dda/disability-profile';
 import { FrustrationDetector } from '@/features/safety/FrustrationDetector';
 import { EventLogger } from '@/features/logging/EventLogger';
 import { nowMs } from '@/lib/utils';
@@ -25,6 +26,7 @@ import {
   saveEvents,
 } from '@/lib/supabase/game-persistence';
 import type { BiometricInput } from '@/features/camera/types';
+import { useSessionContext } from '@/features/session/SessionContext';
 
 export interface UseGameSessionOptions {
   gameConfig: GameConfig;
@@ -32,6 +34,7 @@ export interface UseGameSessionOptions {
   childId?: string; // anon_child_id for DB persistence
   onEventFlush?: (events: unknown[]) => Promise<void>;
   biometricFeed?: BiometricInput | null;
+  disabilityProfile?: DDAProfile;
 }
 
 export interface GameSessionControls {
@@ -55,6 +58,7 @@ export interface GameSessionControls {
   startBreak: () => void;
   endBreak: () => void;
   endSession: (reason: SessionEndReason) => void;
+  applyWarmupAdjustment: (adjustment: number) => void;
 }
 
 interface TrialRecord {
@@ -81,7 +85,12 @@ export function useGameSession({
   childId,
   onEventFlush,
   biometricFeed,
+  disabilityProfile,
 }: UseGameSessionOptions): GameSessionControls {
+  const sessionCtx = useSessionContext();
+  // Resolve profile: explicit prop > context > undefined
+  const resolvedProfile = disabilityProfile ?? sessionCtx?.disabilityProfile;
+
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentTrial, setCurrentTrial] = useState<TrialState | null>(null);
   const [trialNumber, setTrialNumber] = useState(0);
@@ -92,7 +101,7 @@ export function useGameSession({
   const [totalCorrect, setTotalCorrect] = useState(0);
 
   const trialEngineRef = useRef<TrialEngine>(new TrialEngine());
-  const ddaEngineRef = useRef<DDAEngine>(new DDAEngine(gameConfig.dda));
+  const ddaEngineRef = useRef<DDAEngine>(new DDAEngine(gameConfig.dda, resolvedProfile));
   const frustrationRef = useRef<FrustrationDetector>(new FrustrationDetector());
   const loggerRef = useRef<EventLogger>(new EventLogger({
     bufferSize: 20,
@@ -133,6 +142,17 @@ export function useGameSession({
       ddaEngineRef.current.recordBiometricInput(biometricFeed);
     }
   }, [biometricFeed]);
+
+  // Apply warmup adjustment from session context
+  const warmupAdjAppliedRef = useRef(false);
+  useEffect(() => {
+    const adj = sessionCtx?.warmupAdjustment;
+    if (adj !== undefined && adj < 0 && !warmupAdjAppliedRef.current) {
+      warmupAdjAppliedRef.current = true;
+      ddaEngineRef.current.adjustStartLevel(adj);
+      setDifficulty(ddaEngineRef.current.getCurrentParams());
+    }
+  }, [sessionCtx?.warmupAdjustment]);
 
   const flushTrialBuffer = useCallback(async () => {
     if (trialBufferRef.current.length === 0) return;
@@ -222,6 +242,9 @@ export function useGameSession({
     setCurrentTrial(null);
     setTotalTrials(prev => prev + 1);
     if (isCorrect) setTotalCorrect(prev => prev + 1);
+
+    // Report to session manager if present
+    sessionCtx?.onTrialComplete(isCorrect, completed.reactionTimeMs ?? 0);
 
     loggerRef.current.log('trial_end', {
       is_correct: isCorrect,
@@ -315,6 +338,11 @@ export function useGameSession({
     loggerRef.current.log('break_ended', {});
   }, []);
 
+  const applyWarmupAdjustment = useCallback((adjustment: number) => {
+    ddaEngineRef.current.adjustStartLevel(adjustment);
+    setDifficulty(ddaEngineRef.current.getCurrentParams());
+  }, []);
+
   const endSession = useCallback((reason: SessionEndReason) => {
     setIsSessionEnded(true);
     loggerRef.current.log('session_end', {
@@ -359,5 +387,6 @@ export function useGameSession({
     startBreak,
     endBreak,
     endSession,
+    applyWarmupAdjustment,
   };
 }

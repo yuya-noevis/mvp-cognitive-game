@@ -8,6 +8,7 @@ import { useOnboarding } from './hooks/useOnboarding';
 import { AccountScreen } from './components/AccountScreen';
 import { YesNoScreen } from './components/YesNoScreen';
 import { SingleSelectScreen } from './components/SingleSelectScreen';
+import { DatePickerScreen } from './components/DatePickerScreen';
 import { TextInputScreen } from './components/TextInputScreen';
 import { MultiChipScreen } from './components/MultiChipScreen';
 import { CompleteScreen } from './components/CompleteScreen';
@@ -115,15 +116,23 @@ export default function OnboardingPage() {
                   onAnswer={handleYesNo}
                 />
               )}
+              {currentScreen?.type === 'date_picker' && (
+                <DatePickerScreen
+                  screen={currentScreen}
+                  birthYear={data.birthYear}
+                  birthMonth={data.birthMonth}
+                  birthDay={data.birthDay}
+                  onChange={(y, m, d) => updateData({ birthYear: y, birthMonth: m, birthDay: d })}
+                  onNext={goForward}
+                />
+              )}
               {currentScreen?.type === 'single_select' && (
                 <SingleSelectScreen
                   screen={currentScreen}
                   selectedValue={
-                    currentScreen.dataKey === 'childAge'
-                      ? String(data.childAge)
-                      : currentScreen.dataKey === 'speechLevel'
-                        ? data.speechLevel
-                        : ''
+                    currentScreen.dataKey === 'speechLevel'
+                      ? data.speechLevel
+                      : ''
                   }
                   onSelect={handleSingleSelect}
                   onNext={goForward}

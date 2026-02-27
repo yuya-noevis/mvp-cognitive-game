@@ -6,9 +6,11 @@ export type DomainAnswer = 'yes' | 'no' | 'unknown' | 'skipped';
 export interface OnboardingDataV2 {
   email: string;
   password: string;
-  childAge: number;
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
   childName: string;
-  speechLevel: 'nonverbal' | 'nonverbal_yesno' | 'single_words' | 'partial_verbal' | 'verbal';
+  speechLevel: '' | 'nonverbal' | 'nonverbal_yesno' | 'single_words' | 'partial_verbal' | 'verbal';
   hasEvaluation: YesNoAnswer;
   disabilities: string[];
   concerns: string[];
@@ -18,7 +20,7 @@ export interface OnboardingDataV2 {
   sensorySensitive: DomainAnswer;
 }
 
-export type ScreenType = 'account' | 'single_select' | 'text_input' | 'yes_no' | 'multi_chips' | 'complete';
+export type ScreenType = 'account' | 'single_select' | 'date_picker' | 'text_input' | 'yes_no' | 'multi_chips' | 'complete';
 
 export type Phase = 'account' | 'preliminary' | 'disability' | 'cognitive' | 'social' | 'motor' | 'traits' | 'complete';
 

@@ -1,0 +1,403 @@
+# Claude Code指示書: セッション構成の実装（Step 6）
+
+## 前提
+- `docs/game-design-v2.md` の §9「セッション設計」を熟読すること
+- Step 3のティア、Step 5のフィードバックを利用すること
+- 既存のセッション管理を調査すること
+
+```bash
+grep -r "session\|Session\|セッション\|trial\|Trial" src/features/ --include="*.ts" --include="*.tsx" -l
+grep -r "session\|Session" src/games/ --include="*.ts" --include="*.tsx" -l
+grep -r "StageSchedule\|stageSchedule\|SessionConfig" src/ --include="*.ts" --include="*.tsx" -l
+cat src/features/stage-system/StageScheduleGenerator.ts | head -60
+```
+
+## 概要
+
+ティア別のセッション長、試行数、ウォームアップ、1日のプレイ上限を制御する。
+
+## 作業手順
+
+### Step 6-1: セッション設定の定義
+
+`src/features/session/session-config.ts` を新規作成。
+
+```typescript
+import { Tier } from '@/features/gating';
+
+export interface SessionConfig {
+  maxTrials: number;          // 1セッションの最大試行数
+  targetDurationSec: number;  // 目標セッション長（秒）
+  warmupTrials: number;       // ウォームアップ試行数（採点対象外）
+  trialTimeLimitSec: number;  // 1試行あたりの最大時間（秒）
+}
+
+export interface DailyLimitConfig {
+  maxSessions: number;        // 1日の最大セッション数
+  maxTotalMinutes: number;    // 1日の最大プレイ時間（分）
+  cooldownMinutes: number;    // セッション間クールダウン（分）
+}
+
+export function getSessionConfig(tier: Tier): SessionConfig {
+  switch (tier) {
+    case 1:
+      return {
+        maxTrials: 5,
+        targetDurationSec: 90,   // 1.5分
+        warmupTrials: 1,          // ウォームアップ1問（計6問表示、採点は5問）
+        trialTimeLimitSec: 25,
+      };
+    case 2:
+      return {
+        maxTrials: 7,
+        targetDurationSec: 150,  // 2.5分
+        warmupTrials: 2,
+        trialTimeLimitSec: 25,
+      };
+    case 3:
+      return {
+        maxTrials: 12,
+        targetDurationSec: 300,  // 5分
+        warmupTrials: 2,
+        trialTimeLimitSec: 20,
+      };
+  }
+}
+
+export function getDailyLimitConfig(tier: Tier): DailyLimitConfig {
+  switch (tier) {
+    case 1:
+      return { maxSessions: 2, maxTotalMinutes: 4, cooldownMinutes: 30 };
+    case 2:
+      return { maxSessions: 3, maxTotalMinutes: 9, cooldownMinutes: 15 };
+    case 3:
+      return { maxSessions: 6, maxTotalMinutes: 30, cooldownMinutes: 5 };
+  }
+}
+```
+
+### Step 6-2: セッションマネージャー
+
+`src/features/session/session-manager.ts` を新規作成。
+
+1セッションのライフサイクルを管理:
+
+```typescript
+export type TrialPhase = 'warmup' | 'scored';
+export type SessionState = 'not-started' | 'warmup' | 'playing' | 'completed' | 'daily-limit-reached';
+
+export interface TrialResult {
+  trialIndex: number;
+  phase: TrialPhase;       // warmup or scored
+  correct: boolean;
+  responseTimeMs: number;
+  timestamp: number;
+}
+
+export class SessionManager {
+  private config: SessionConfig;
+  private dailyLimit: DailyLimitConfig;
+  private trials: TrialResult[] = [];
+  private state: SessionState = 'not-started';
+  private startTime: number = 0;
+
+  constructor(tier: Tier) {
+    this.config = getSessionConfig(tier);
+    this.dailyLimit = getDailyLimitConfig(tier);
+  }
+
+  start(): void {
+    this.state = 'warmup';
+    this.startTime = Date.now();
+    this.trials = [];
+  }
+
+  getCurrentTrialIndex(): number {
+    return this.trials.length;
+  }
+
+  getTotalTrialCount(): number {
+    return this.config.warmupTrials + this.config.maxTrials;
+  }
+
+  getCurrentPhase(): TrialPhase {
+    if (this.trials.length < this.config.warmupTrials) return 'warmup';
+    return 'scored';
+  }
+
+  isWarmup(): boolean {
+    return this.getCurrentPhase() === 'warmup';
+  }
+
+  recordTrial(correct: boolean, responseTimeMs: number): {
+    phase: TrialPhase;
+    isSessionComplete: boolean;
+    scoredTrialCount: number;
+    progress: number; // 0-1
+  } {
+    const phase = this.getCurrentPhase();
+    this.trials.push({
+      trialIndex: this.trials.length,
+      phase,
+      correct,
+      responseTimeMs,
+      timestamp: Date.now(),
+    });
+
+    if (phase === 'warmup' && this.trials.length === this.config.warmupTrials) {
+      this.state = 'playing';
+    }
+
+    const scoredTrials = this.trials.filter(t => t.phase === 'scored');
+    const totalTrials = this.config.warmupTrials + this.config.maxTrials;
+    const isComplete = this.trials.length >= totalTrials;
+
+    if (isComplete) {
+      this.state = 'completed';
+    }
+
+    return {
+      phase,
+      isSessionComplete: isComplete,
+      scoredTrialCount: scoredTrials.length,
+      progress: this.trials.length / totalTrials,
+    };
+  }
+
+  // ウォームアップ結果からDDA開始レベルを調整
+  getWarmupAdjustment(): number {
+    const warmupTrials = this.trials.filter(t => t.phase === 'warmup');
+    if (warmupTrials.length === 0) return 0;
+    
+    const warmupCorrect = warmupTrials.filter(t => t.correct).length;
+    const warmupRate = warmupCorrect / warmupTrials.length;
+
+    if (warmupRate === 1.0) return 0;   // 全問正解→前回レベル維持
+    if (warmupRate >= 0.5) return -1;    // 半分正解→1レベル下げ
+    return -2;                            // 全問不正解→2レベル下げ
+  }
+
+  getScoredResults(): TrialResult[] {
+    return this.trials.filter(t => t.phase === 'scored');
+  }
+
+  getSessionDurationSec(): number {
+    return (Date.now() - this.startTime) / 1000;
+  }
+
+  getState(): SessionState {
+    return this.state;
+  }
+}
+```
+
+### Step 6-3: 1日のプレイ記録管理
+
+`src/features/session/daily-tracker.ts` を新規作成。
+
+```typescript
+// localStorageに今日のプレイ記録を保存
+// 日付が変わったらリセット
+
+interface DailyRecord {
+  date: string; // YYYY-MM-DD
+  sessionCount: number;
+  totalPlayTimeMs: number;
+  lastSessionEndTime: number;
+}
+
+export class DailyTracker {
+  private storageKey = 'manas-daily-play-record';
+
+  private getRecord(): DailyRecord {
+    const today = new Date().toISOString().split('T')[0];
+    const stored = localStorage.getItem(this.storageKey);
+    if (stored) {
+      const record = JSON.parse(stored) as DailyRecord;
+      if (record.date === today) return record;
+    }
+    return { date: today, sessionCount: 0, totalPlayTimeMs: 0, lastSessionEndTime: 0 };
+  }
+
+  private saveRecord(record: DailyRecord): void {
+    localStorage.setItem(this.storageKey, JSON.stringify(record));
+  }
+
+  recordSessionEnd(durationMs: number): void {
+    const record = this.getRecord();
+    record.sessionCount++;
+    record.totalPlayTimeMs += durationMs;
+    record.lastSessionEndTime = Date.now();
+    this.saveRecord(record);
+  }
+
+  canStartSession(dailyLimit: DailyLimitConfig): {
+    allowed: boolean;
+    reason?: string;
+    waitMinutes?: number;
+  } {
+    const record = this.getRecord();
+
+    // セッション数上限
+    if (record.sessionCount >= dailyLimit.maxSessions) {
+      return {
+        allowed: false,
+        reason: 'きょうは たくさん がんばったね！また あした あそぼう 🌟',
+      };
+    }
+
+    // 総プレイ時間上限
+    if (record.totalPlayTimeMs >= dailyLimit.maxTotalMinutes * 60 * 1000) {
+      return {
+        allowed: false,
+        reason: 'きょうは たくさん がんばったね！また あした あそぼう 🌟',
+      };
+    }
+
+    // クールダウン
+    if (record.lastSessionEndTime > 0) {
+      const elapsedMin = (Date.now() - record.lastSessionEndTime) / 60000;
+      if (elapsedMin < dailyLimit.cooldownMinutes) {
+        const waitMin = Math.ceil(dailyLimit.cooldownMinutes - elapsedMin);
+        return {
+          allowed: false,
+          reason: `すこし おやすみしよう！あと ${waitMin}ふん まってね ☕`,
+          waitMinutes: waitMin,
+        };
+      }
+    }
+
+    return { allowed: true };
+  }
+
+  getTodayStats(): { sessionCount: number; totalPlayTimeMin: number } {
+    const record = this.getRecord();
+    return {
+      sessionCount: record.sessionCount,
+      totalPlayTimeMin: Math.round(record.totalPlayTimeMs / 60000),
+    };
+  }
+}
+
+export const dailyTracker = new DailyTracker();
+```
+
+### Step 6-4: プログレスバーコンポーネント
+
+`src/features/session/SessionProgressBar.tsx` を新規作成。
+
+ゲーム画面上部に表示するプログレスバー:
+
+```typescript
+interface SessionProgressBarProps {
+  progress: number;         // 0-1
+  currentTrial: number;     // 現在の試行番号
+  totalTrials: number;      // 総試行数
+  isWarmup: boolean;        // ウォームアップ中かどうか
+  tier: Tier;
+}
+```
+
+**ティア別の表示:**
+- Tier 1: ドットインジケーター（●●●○○）— シンプルで直感的
+- Tier 2-3: 横バー + 数字（3/7）
+
+**ウォームアップ表示:**
+- ウォームアップ中はバーの色を薄くし、「れんしゅう」ラベルを表示（L2以上）
+- ウォームアップ完了→本番開始時に「スタート！」の短いアニメーション
+
+### Step 6-5: セッション完了画面
+
+`src/features/session/SessionComplete.tsx` を新規作成。
+
+セッション完了時に表示する画面:
+
+```typescript
+interface SessionCompleteProps {
+  scoredResults: TrialResult[];
+  streakStats: { totalCorrect: number; totalAttempts: number; accuracy: number };
+  sessionDurationSec: number;
+  onNextSession: () => void;  // 次のセッションへ
+  onGoHome: () => void;       // ホームへ戻る
+  dailyStats: { sessionCount: number; totalPlayTimeMin: number };
+  canPlayMore: boolean;        // 日次上限に達していないか
+}
+```
+
+**表示内容:**
+- ★の数（正答率に応じて1-3個）
+- 「よくできたね！」メッセージ
+- 正答数 / 総問題数
+- 「もういちど あそぶ」ボタン（canPlayMore=true時）
+- 「おうちに もどる」ボタン
+- 日次上限到達時: 「きょうは たくさん がんばったね！」+ 「おうちに もどる」のみ
+
+**注意**: このコンポーネントはシンプルに。報酬（宝箱等）はStep 8で追加。
+
+### Step 6-6: ゲーム画面への統合
+
+`src/app/(game)/game/[integratedId]/page.tsx` を更新:
+
+状態遷移:
+```
+[日次上限チェック]
+  ├─ 上限到達 → [上限メッセージ画面]
+  └─ OK → [指示画面(Step4)]
+              ├─ 初回 → 指示表示 → [ウォームアップ]
+              └─ 2回目以降 → [ウォームアップ]
+                                    ↓
+                              [本番プレイ]
+                                    ↓ (maxTrials完了)
+                              [セッション完了画面]
+                                    ├─ もういちど → [日次上限チェック] に戻る
+                                    └─ おうち → ホーム画面
+```
+
+統合ポイント:
+1. セッション開始時に `SessionManager` を初期化
+2. 各試行完了時に `sessionManager.recordTrial()` を呼ぶ
+3. `isWarmup()` の間は採点しない（フィードバックは出す）
+4. ウォームアップ結果で `getWarmupAdjustment()` を取得し、DDAの開始レベルに反映
+5. セッション完了時に `dailyTracker.recordSessionEnd()` を呼ぶ
+6. プログレスバーを画面上部に常時表示
+
+### Step 6-7: 開発用ツール拡張
+
+既存の開発トグルに追加:
+- セッション長の強制変更（3試行/5試行/12試行）
+- 日次上限のリセットボタン
+- ウォームアップスキップボタン
+
+### Step 6-8: barrel export
+
+`src/features/session/index.ts` を新規作成。
+
+### Step 6-9: 検証
+
+1. `npm run build` エラー0
+2. Tier 1: 5問（+1ウォームアップ=6問表示）でセッション完了
+3. Tier 2: 7問（+2ウォームアップ=9問表示）でセッション完了
+4. Tier 3: 12問（+2ウォームアップ=14問表示）でセッション完了
+5. ウォームアップ中はプログレスバーが「れんしゅう」表示
+6. セッション完了画面が表示され、正答率に応じた★が出る
+7. 日次上限到達時に「また あした」メッセージ
+8. クールダウン中に「すこし おやすみ」メッセージ
+9. 開発トグルでセッション長変更・上限リセットが動作
+
+## やらないこと（このステップでは）
+
+- ユニット制（5セッション=1ユニット、ボス戦）— Step 8以降
+- セッション完了時の宝箱・報酬 — Step 8
+- 間隔反復（苦手問題の再出題）— Step 11
+- セッション結果のSupabase保存（localStorageのみでMVP）
+
+## 完了条件
+
+- [ ] `src/features/session/` 配下にファイル群作成
+- [ ] SessionManagerがウォームアップ→本番→完了の遷移を管理
+- [ ] DailyTrackerが日次上限を正しく判定
+- [ ] SessionProgressBarがティア別に表示
+- [ ] SessionCompleteが表示される
+- [ ] ウォームアップ結果がDDA開始レベルに反映される（調整値が返る）
+- [ ] ゲーム画面で一連のフローが動作
+- [ ] `npm run build` エラー0
