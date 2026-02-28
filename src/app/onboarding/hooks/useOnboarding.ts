@@ -202,6 +202,7 @@ export function useOnboarding() {
         });
         setLocalConsents(consentDefaults);
         document.cookie = 'manas_demo_session=1; path=/; max-age=2592000; SameSite=Lax';
+        clearChildCache();
         clearSession();
         router.push('/');
         return;
@@ -241,6 +242,17 @@ export function useOnboarding() {
         return;
       }
 
+      // localStorage にもバックアップ保存（Supabase不安定時のフォールバック用）
+      setLocalChildProfile({
+        id: childRow?.id ?? `local_${anonChildId}`,
+        anonChildId,
+        displayName: data.childName || 'おともだち',
+        ageGroup,
+        avatarId: 'avatar_01',
+        settings: {},
+        consentFlags: { data_optimization: false, research_use: false, biometric: false },
+      });
+
       if (childRow) {
         await supabase.from('child_profiles').insert({
           child_id: childRow.id,
@@ -249,7 +261,7 @@ export function useOnboarding() {
           concerns: data.concerns,
           traits: [...data.behavioralTraits, ...data.socialTraits],
           domain_answers: data.domainAnswers,
-        });
+        }); // non-critical, ignore errors
 
         const domainLevels = Object.entries(data.domainAnswers).map(([domain, answer]) => ({
           child_id: childRow.id,
@@ -261,6 +273,7 @@ export function useOnboarding() {
         }
       }
 
+      clearChildCache();
       clearSession();
       router.push('/');
     } catch {

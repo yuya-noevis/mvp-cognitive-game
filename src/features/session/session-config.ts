@@ -42,10 +42,10 @@ export function getSessionConfig(tier: Tier): SessionConfig {
 export function getDailyLimitConfig(tier: Tier): DailyLimitConfig {
   switch (tier) {
     case 1:
-      return { maxSessions: 2, maxTotalMinutes: 4, cooldownMinutes: 30 };
+      return { maxSessions: 5, maxTotalMinutes: 4, cooldownMinutes: 2 };
     case 2:
-      return { maxSessions: 3, maxTotalMinutes: 9, cooldownMinutes: 15 };
+      return { maxSessions: 8, maxTotalMinutes: 9, cooldownMinutes: 1 };
     case 3:
-      return { maxSessions: 6, maxTotalMinutes: 30, cooldownMinutes: 5 };
+      return { maxSessions: 12, maxTotalMinutes: 30, cooldownMinutes: 0 };
   }
 }

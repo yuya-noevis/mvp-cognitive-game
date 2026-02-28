@@ -7,7 +7,9 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Mogura from '@/components/mascot/Mogura';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { useChildProfile } from '@/hooks/useChildProfile';
+import { useChildProfile, clearChildCache } from '@/hooks/useChildProfile';
+import { clearLocalProfile } from '@/lib/local-profile';
+import { supabase } from '@/lib/supabase/client';
 import { useTier, checkGameAccess } from '@/features/gating';
 import type { Tier } from '@/features/gating';
 import type { IntegratedGameId } from '@/games/integrated/types';
@@ -160,6 +162,12 @@ function GearIcon({ size = 24, className = '' }: { size?: number; className?: st
 
 export default function Home() {
   const router = useRouter();
+  const [showDevTools, setShowDevTools] = useState(process.env.NODE_ENV === 'development');
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1') {
+      setShowDevTools(true);
+    }
+  }, []);
   const { child, loading, error } = useChildProfile();
   const { tier, setDevTier } = useTier();
 
@@ -382,25 +390,42 @@ export default function Home() {
         </div>
       )}
 
-      {/* ---- Dev tier toggle (development only) ---- */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed left-4 z-50 flex items-center gap-1 rounded-xl bg-galaxy/90 px-3 py-1.5 text-xs backdrop-blur"
-             style={{ bottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
-          <span className="text-moon mr-1">Tier:</span>
-          {([1, 2, 3] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={`rounded-lg px-2 py-1 font-bold transition-colors ${
-                tier === t
-                  ? 'bg-cosmic text-white'
-                  : 'text-moon hover:bg-galaxy-light'
-              }`}
-              onClick={() => setDevTier(t)}
-            >
-              {t}
-            </button>
-          ))}
+      {/* ---- Debug banner (top of screen, ?debug=1 or development) ---- */}
+      {showDevTools && (
+        <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between gap-2 px-4 py-2"
+             style={{ background: 'rgba(0,0,0,0.85)', paddingTop: 'calc(8px + env(safe-area-inset-top))' }}>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-white/60 mr-1">Tier:</span>
+            {([1, 2, 3] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`rounded-md px-2 py-1 text-xs font-bold ${
+                  tier === t
+                    ? 'bg-cosmic text-white'
+                    : 'text-white/50'
+                }`}
+                onClick={() => setDevTier(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="rounded-lg bg-red-500 px-4 py-1.5 text-sm font-bold text-white active:scale-95"
+            onClick={async () => {
+              clearChildCache();
+              clearLocalProfile();
+              document.cookie = 'manas_demo_session=; path=/; max-age=0';
+              try { sessionStorage.clear(); } catch {}
+              try { localStorage.removeItem('manas_tier'); localStorage.removeItem('manas_disability_type'); } catch {}
+              try { await supabase.auth.signOut(); } catch {}
+              window.location.href = '/onboarding';
+            }}
+          >
+            RESET
+          </button>
         </div>
       )}
 

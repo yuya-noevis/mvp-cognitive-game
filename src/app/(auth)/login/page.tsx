@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Mogura from '@/components/mascot/Mogura';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase/client';
 import { getLocalChildProfile, clearLocalProfile } from '@/lib/local-profile';
+import { clearChildCache } from '@/hooks/useChildProfile';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,12 +16,16 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasLocalProfile, setHasLocalProfile] = useState(false);
+  const [isDebug, setIsDebug] = useState(false);
 
-  // Check if a demo profile already exists
+  // Check if a demo profile already exists + debug mode
   useEffect(() => {
     if (!isSupabaseEnabled) {
       const profile = getLocalChildProfile();
       if (profile) setHasLocalProfile(true);
+    }
+    if (new URLSearchParams(window.location.search).get('debug') === '1') {
+      setIsDebug(true);
     }
   }, []);
 
@@ -153,6 +158,27 @@ export default function LoginPage() {
               デバッグ用: サインアップから やりなおす
             </button>
           </>
+        )}
+
+        {/* Debug reset (visible with ?debug=1) */}
+        {isDebug && isSupabaseEnabled && (
+          <button
+            type="button"
+            onClick={() => {
+              clearChildCache();
+              clearLocalProfile();
+              document.cookie = 'manas_demo_session=; path=/; max-age=0';
+              try { sessionStorage.clear(); } catch {}
+              try { localStorage.removeItem('manas_tier'); localStorage.removeItem('manas_disability_type'); } catch {}
+              supabase.auth.signOut().finally(() => {
+                window.location.href = '/onboarding';
+              });
+            }}
+            className="w-full h-11 rounded-xl text-sm font-bold active:scale-95 transition-transform mt-1"
+            style={{ background: 'rgba(255,59,48,0.2)', color: '#FF3B30', border: '2px solid rgba(255,59,48,0.4)' }}
+          >
+            RESET（オンボーディングからやり直す）
+          </button>
         )}
       </div>
 

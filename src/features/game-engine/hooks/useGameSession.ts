@@ -27,6 +27,7 @@ import {
 } from '@/lib/supabase/game-persistence';
 import type { BiometricInput } from '@/features/camera/types';
 import { useSessionContext } from '@/features/session/SessionContext';
+import { useChildProfile } from '@/hooks/useChildProfile';
 
 export interface UseGameSessionOptions {
   gameConfig: GameConfig;
@@ -91,6 +92,10 @@ export function useGameSession({
   // Resolve profile: explicit prop > context > undefined
   const resolvedProfile = disabilityProfile ?? sessionCtx?.disabilityProfile;
 
+  // Auto-resolve childId from profile if not explicitly provided
+  const { child } = useChildProfile();
+  const resolvedChildId = childId ?? child?.anonChildId;
+
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentTrial, setCurrentTrial] = useState<TrialState | null>(null);
   const [trialNumber, setTrialNumber] = useState(0);
@@ -110,6 +115,8 @@ export function useGameSession({
 
   // DB session ID (may differ from local UUID if DB is used)
   const dbSessionIdRef = useRef<string | null>(null);
+  // Track if DB session creation was attempted
+  const dbSessionCreatedRef = useRef(false);
   // Trial buffer for batch inserts
   const trialBufferRef = useRef<TrialRecord[]>([]);
   // Session start time for duration calculation
@@ -154,6 +161,23 @@ export function useGameSession({
     }
   }, [sessionCtx?.warmupAdjustment]);
 
+  // Lazy DB session creation: if session is active but DB session wasn't created
+  // (because resolvedChildId wasn't available yet), create it now
+  useEffect(() => {
+    if (
+      sessionId &&
+      resolvedChildId &&
+      !dbSessionIdRef.current &&
+      !dbSessionCreatedRef.current &&
+      !isSessionEnded
+    ) {
+      dbSessionCreatedRef.current = true;
+      createGameSession(resolvedChildId, gameConfig.id, difficulty).then((id) => {
+        dbSessionIdRef.current = id;
+      });
+    }
+  }, [sessionId, resolvedChildId, isSessionEnded, gameConfig.id, difficulty]);
+
   const flushTrialBuffer = useCallback(async () => {
     if (trialBufferRef.current.length === 0) return;
     const batch = [...trialBufferRef.current];
@@ -190,12 +214,15 @@ export function useGameSession({
     });
 
     // Create DB session if childId available
-    if (childId) {
-      createGameSession(childId, gameConfig.id, adjustedDiff).then((id) => {
+    dbSessionCreatedRef.current = false;
+    dbSessionIdRef.current = null;
+    if (resolvedChildId) {
+      dbSessionCreatedRef.current = true;
+      createGameSession(resolvedChildId, gameConfig.id, adjustedDiff).then((id) => {
         dbSessionIdRef.current = id;
       });
     }
-  }, [gameConfig, ageGroup, childId]);
+  }, [gameConfig, ageGroup, resolvedChildId]);
 
   const startTrial = useCallback((
     stimulus: Record<string, unknown>,

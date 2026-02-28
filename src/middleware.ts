@@ -1,10 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createSupabaseMiddlewareClient } from '@/lib/supabase/server';
 
-const PUBLIC_ROUTES = ['/login', '/signup', '/onboarding'];
+const PUBLIC_ROUTES = ['/login', '/signup', '/onboarding', '/debug-reset'];
 
 /** Cookie name used to track demo-mode login */
 const DEMO_SESSION_COOKIE = 'manas_demo_session';
+
+function buildRedirectUrl(path: string, request: NextRequest): URL {
+  const url = new URL(path, request.url);
+  const debug = request.nextUrl.searchParams.get('debug');
+  if (debug) url.searchParams.set('debug', debug);
+  return url;
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,12 +25,12 @@ export async function middleware(request: NextRequest) {
 
     // Not "logged in" + private route → redirect to /login
     if (!hasDemoSession && !isPublicRoute) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(buildRedirectUrl('/login', request));
     }
 
     // Already "logged in" + on login/signup → redirect to /
     if (hasDemoSession && (pathname === '/login' || pathname === '/signup')) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return NextResponse.redirect(buildRedirectUrl('/', request));
     }
 
     return NextResponse.next();
@@ -40,12 +47,12 @@ export async function middleware(request: NextRequest) {
 
   // Not logged in + private route → redirect to /login
   if (!user && !isPublicRoute) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(buildRedirectUrl('/login', request));
   }
 
   // Logged in + public route (login/signup) → redirect to /
   if (user && (pathname === '/login' || pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(buildRedirectUrl('/', request));
   }
 
   // Logged in → check if child record exists (skip for onboarding/consent)
@@ -58,7 +65,7 @@ export async function middleware(request: NextRequest) {
 
     if (!children || children.length === 0) {
       if (pathname !== '/onboarding') {
-        return NextResponse.redirect(new URL('/onboarding', request.url));
+        return NextResponse.redirect(buildRedirectUrl('/onboarding', request));
       }
     }
   }

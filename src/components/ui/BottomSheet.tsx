@@ -76,7 +76,7 @@ export function BottomSheet({ isOpen, onClose, children, title }: BottomSheetPro
               </h3>
             )}
 
-            <div className="px-4 pb-6">
+            <div className="px-4 pb-6" style={{ paddingBottom: 'calc(24px + 72px + env(safe-area-inset-bottom))' }}>
               {children}
             </div>
           </motion.div>
