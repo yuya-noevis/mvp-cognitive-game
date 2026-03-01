@@ -12,12 +12,12 @@ export const PHASE_COLORS: Record<string, string> = {
 };
 
 export const PHASE_LABELS: Record<string, string> = {
-  preliminary: 'きほん',
-  disability: 'しんだん',
-  cognitive: 'にんち',
-  social: 'こころ',
-  motor: 'からだ',
-  traits: 'とくせい',
+  preliminary: '基本情報',
+  disability: '診断',
+  cognitive: '認知',
+  social: '社会・情緒',
+  motor: '運動・感覚',
+  traits: '特性',
 };
 
 export const TOTAL_STEPS = 25;
@@ -91,7 +91,7 @@ export const SCREENS: ScreenDef[] = [
   // Phase 1: Preliminary
   {
     id: 1, type: 'date_picker', phase: 'preliminary',
-    phaseLabel: 'きほん', phaseColor: PHASE_COLORS.preliminary,
+    phaseLabel: '基本情報', phaseColor: PHASE_COLORS.preliminary,
     expression: 'happy', expressionSize: 120,
     title: 'お子さまの生年月日をおしえてください',
     subtitle: 'お子さまに合った体験をお届けします',
@@ -99,7 +99,7 @@ export const SCREENS: ScreenDef[] = [
   },
   {
     id: 2, type: 'text_input', phase: 'preliminary',
-    phaseLabel: 'きほん', phaseColor: PHASE_COLORS.preliminary,
+    phaseLabel: '基本情報', phaseColor: PHASE_COLORS.preliminary,
     expression: 'pointing', expressionSize: 100,
     title: 'お子さまのおなまえは？',
     subtitle: 'ニックネームでも大丈夫です',
@@ -107,7 +107,7 @@ export const SCREENS: ScreenDef[] = [
   },
   {
     id: 3, type: 'single_select', phase: 'preliminary',
-    phaseLabel: 'きほん', phaseColor: PHASE_COLORS.preliminary,
+    phaseLabel: '基本情報', phaseColor: PHASE_COLORS.preliminary,
     expression: 'encouraging', expressionSize: 120,
     title: 'お子さまの発話の状態は？',
     dataKey: 'speechLevel', skippable: false,
@@ -116,14 +116,14 @@ export const SCREENS: ScreenDef[] = [
   // Phase 2: Disability
   {
     id: 4, type: 'yes_no', phase: 'disability',
-    phaseLabel: 'しんだん', phaseColor: PHASE_COLORS.disability,
+    phaseLabel: '診断', phaseColor: PHASE_COLORS.disability,
     expression: 'surprised', expressionSize: 120,
     title: '専門家の発達評価を受けたことはありますか？',
     dataKey: 'hasEvaluation', skippable: true,
   },
   {
     id: 5, type: 'multi_chips', phase: 'disability',
-    phaseLabel: 'しんだん', phaseColor: PHASE_COLORS.disability,
+    phaseLabel: '診断', phaseColor: PHASE_COLORS.disability,
     expression: 'encouraging', expressionSize: 100,
     title: '診断を受けているものを選んでください',
     subtitle: '複数選択できます。あとから変更も可能です',
@@ -133,7 +133,7 @@ export const SCREENS: ScreenDef[] = [
   },
   {
     id: 6, type: 'multi_chips', phase: 'disability',
-    phaseLabel: 'しんだん', phaseColor: PHASE_COLORS.disability,
+    phaseLabel: '診断', phaseColor: PHASE_COLORS.disability,
     expression: 'encouraging', expressionSize: 100,
     title: '気になっていることはありますか？',
     subtitle: 'あてはまるものを選んでください',
@@ -144,56 +144,56 @@ export const SCREENS: ScreenDef[] = [
   // Phase 3: Cognitive (screens 7-14)
   {
     id: 7, type: 'yes_no', phase: 'cognitive',
-    phaseLabel: 'にんち', phaseColor: PHASE_COLORS.cognitive,
+    phaseLabel: '認知', phaseColor: PHASE_COLORS.cognitive,
     expression: 'happy', expressionSize: 100,
     title: 'お子さまは好きな遊びに3分以上集中できますか？',
     domain: 'attention', dataKey: 'q_attention', skippable: true,
   },
   {
     id: 8, type: 'yes_no', phase: 'cognitive',
-    phaseLabel: 'にんち', phaseColor: PHASE_COLORS.cognitive,
+    phaseLabel: '認知', phaseColor: PHASE_COLORS.cognitive,
     expression: 'happy', expressionSize: 100,
     title: '「まって」と言われたとき、少しの間がまんできますか？',
     domain: 'inhibition', dataKey: 'q_inhibition', skippable: true,
   },
   {
     id: 9, type: 'yes_no', phase: 'cognitive',
-    phaseLabel: 'にんち', phaseColor: PHASE_COLORS.cognitive,
+    phaseLabel: '認知', phaseColor: PHASE_COLORS.cognitive,
     expression: 'happy', expressionSize: 100,
     title: '2つの指示を続けて覚えて実行できますか？（例:「くつをはいて、かばんをもって」）',
     domain: 'working_memory', dataKey: 'q_working_memory', skippable: true,
   },
   {
     id: 10, type: 'yes_no', phase: 'cognitive',
-    phaseLabel: 'にんち', phaseColor: PHASE_COLORS.cognitive,
+    phaseLabel: '認知', phaseColor: PHASE_COLORS.cognitive,
     expression: 'happy', expressionSize: 100,
     title: '昨日やったことを思い出して教えてくれますか？',
     domain: 'memory', dataKey: 'q_memory', skippable: true,
   },
   {
     id: 11, type: 'yes_no', phase: 'cognitive',
-    phaseLabel: 'にんち', phaseColor: PHASE_COLORS.cognitive,
+    phaseLabel: '認知', phaseColor: PHASE_COLORS.cognitive,
     expression: 'happy', expressionSize: 100,
     title: '簡単な指示にすばやく反応できますか？（例:「手をたたいて」）',
     domain: 'processing_speed', dataKey: 'q_processing_speed', skippable: true,
   },
   {
     id: 12, type: 'yes_no', phase: 'cognitive',
-    phaseLabel: 'にんち', phaseColor: PHASE_COLORS.cognitive,
+    phaseLabel: '認知', phaseColor: PHASE_COLORS.cognitive,
     expression: 'happy', expressionSize: 100,
     title: '遊びやルールが変わったとき、切り替えられますか？',
     domain: 'cognitive_flexibility', dataKey: 'q_cognitive_flexibility', skippable: true,
   },
   {
     id: 13, type: 'yes_no', phase: 'cognitive',
-    phaseLabel: 'にんち', phaseColor: PHASE_COLORS.cognitive,
+    phaseLabel: '認知', phaseColor: PHASE_COLORS.cognitive,
     expression: 'happy', expressionSize: 100,
     title: '簡単なパターンやルールに気づきますか？（例: 赤→青→赤→？）',
     domain: 'reasoning', dataKey: 'q_reasoning', skippable: true,
   },
   {
     id: 14, type: 'yes_no', phase: 'cognitive',
-    phaseLabel: 'にんち', phaseColor: PHASE_COLORS.cognitive,
+    phaseLabel: '認知', phaseColor: PHASE_COLORS.cognitive,
     expression: 'happy', expressionSize: 100,
     title: '三角や四角などの形を見分けられますか？',
     domain: 'visuospatial', dataKey: 'q_visuospatial', skippable: true,
@@ -201,28 +201,28 @@ export const SCREENS: ScreenDef[] = [
   // Phase 4: Social (screens 15-18)
   {
     id: 15, type: 'yes_no', phase: 'social',
-    phaseLabel: 'こころ', phaseColor: PHASE_COLORS.social,
+    phaseLabel: '社会・情緒', phaseColor: PHASE_COLORS.social,
     expression: 'excited', expressionSize: 100,
     title: '他の人が泣いていたり怒っていると気づきますか？',
     domain: 'social_cognition', dataKey: 'q_social_cognition', skippable: true,
   },
   {
     id: 16, type: 'yes_no', phase: 'social',
-    phaseLabel: 'こころ', phaseColor: PHASE_COLORS.social,
+    phaseLabel: '社会・情緒', phaseColor: PHASE_COLORS.social,
     expression: 'excited', expressionSize: 100,
     title: '気持ちが高ぶったとき、少しずつ落ち着くことができますか？',
     domain: 'emotion_regulation', dataKey: 'q_emotion_regulation', skippable: true,
   },
   {
     id: 17, type: 'yes_no', phase: 'social',
-    phaseLabel: 'こころ', phaseColor: PHASE_COLORS.social,
+    phaseLabel: '社会・情緒', phaseColor: PHASE_COLORS.social,
     expression: 'excited', expressionSize: 100,
     title: '色や数字の名前をいくつか言えますか？',
     domain: 'language', dataKey: 'q_language', skippable: true,
   },
   {
     id: 18, type: 'yes_no', phase: 'social',
-    phaseLabel: 'こころ', phaseColor: PHASE_COLORS.social,
+    phaseLabel: '社会・情緒', phaseColor: PHASE_COLORS.social,
     expression: 'excited', expressionSize: 100,
     title: '簡単なパズルや型はめを自分で試しますか？',
     domain: 'planning', dataKey: 'q_planning', skippable: true,
@@ -230,21 +230,21 @@ export const SCREENS: ScreenDef[] = [
   // Phase 5: Motor (screens 19-21)
   {
     id: 19, type: 'yes_no', phase: 'motor',
-    phaseLabel: 'からだ', phaseColor: PHASE_COLORS.motor,
+    phaseLabel: '運動・感覚', phaseColor: PHASE_COLORS.motor,
     expression: 'clapping', expressionSize: 100,
     title: 'ボタンをとめたり、小さなものをつまんだりできますか？',
     domain: 'motor_skills', dataKey: 'q_motor_skills', skippable: true,
   },
   {
     id: 20, type: 'yes_no', phase: 'motor',
-    phaseLabel: 'からだ', phaseColor: PHASE_COLORS.motor,
+    phaseLabel: '運動・感覚', phaseColor: PHASE_COLORS.motor,
     expression: 'clapping', expressionSize: 100,
     title: '絵の中から特定のものを見つけることができますか？（例: 「犬はどこ？」）',
     domain: 'perceptual', dataKey: 'q_perceptual', skippable: true,
   },
   {
     id: 21, type: 'yes_no', phase: 'motor',
-    phaseLabel: 'からだ', phaseColor: PHASE_COLORS.motor,
+    phaseLabel: '運動・感覚', phaseColor: PHASE_COLORS.motor,
     expression: 'clapping', expressionSize: 100,
     title: '音や光、触られることにとても敏感ですか？',
     domain: 'sensory', dataKey: 'q_sensory_sensitive', skippable: true,
@@ -252,7 +252,7 @@ export const SCREENS: ScreenDef[] = [
   // Phase 6: Traits (screens 22-23)
   {
     id: 22, type: 'multi_chips', phase: 'traits',
-    phaseLabel: 'とくせい', phaseColor: PHASE_COLORS.traits,
+    phaseLabel: '特性', phaseColor: PHASE_COLORS.traits,
     expression: 'encouraging', expressionSize: 100,
     title: 'あてはまるものはありますか？',
     subtitle: 'お子さまに合った配慮をするための質問です',
@@ -261,7 +261,7 @@ export const SCREENS: ScreenDef[] = [
   },
   {
     id: 23, type: 'multi_chips', phase: 'traits',
-    phaseLabel: 'とくせい', phaseColor: PHASE_COLORS.traits,
+    phaseLabel: '特性', phaseColor: PHASE_COLORS.traits,
     expression: 'happy', expressionSize: 100,
     title: '人との関わりで気になることはありますか？',
     dataKey: 'socialTraits', skippable: true,

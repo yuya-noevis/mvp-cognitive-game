@@ -14,7 +14,8 @@ import {
 } from '@/features/gating';
 import { deriveDisabilityType } from '@/features/dda/derive-profile';
 import { saveDisabilityType } from '@/features/dda/disability-profile-store';
-import type { OnboardingDataV2, YesNoAnswer, ScreenDef } from '../types';
+import type { AgeGroup } from '@/types';
+import type { OnboardingDataV2, YesNoAnswer } from '../types';
 import { SCREENS, TOTAL_STEPS } from '../constants';
 import {
   saveToSession,
@@ -75,16 +76,6 @@ export function useOnboarding() {
     setDirection(-1);
     setScreenIdx((i) => Math.max(i - 1, 0));
   }, []);
-
-  const handleSkip = useCallback(() => {
-    if (currentScreen?.domain) {
-      setData((prev) => ({
-        ...prev,
-        domainAnswers: { ...prev.domainAnswers, [currentScreen.domain!]: 'skipped' },
-      }));
-    }
-    goForward();
-  }, [currentScreen, goForward]);
 
   // Yes/No/Unknown answer handler — auto-advance after 300ms
   const handleYesNo = useCallback((answer: YesNoAnswer) => {
@@ -147,21 +138,49 @@ export function useOnboarding() {
     }
     setSaving(true);
     try {
-      if (!isSupabaseEnabled) {
-        goForward();
-        return;
+      if (isSupabaseEnabled) {
+        try {
+          const { error } = await supabase.auth.signUp({ email: data.email, password: data.password });
+          if (error) console.warn('Supabase signUp failed, continuing without auth:', error.message);
+          else {
+            const { error: signInError } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
+            if (signInError) console.warn('Auto sign-in failed:', signInError.message);
+          }
+        } catch (e) {
+          console.warn('Account creation failed, continuing without auth:', e);
+        }
       }
-      const { error } = await supabase.auth.signUp({ email: data.email, password: data.password });
-      if (error) { setAuthError(error.message); return; }
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
-      if (signInError) console.warn('Auto sign-in failed:', signInError.message);
       goForward();
-    } catch {
-      setAuthError('アカウント作成に失敗しました');
     } finally {
       setSaving(false);
     }
   }, [data.email, data.password, goForward]);
+
+  // localStorage fallback save helper
+  const saveLocallyAndRedirect = useCallback((ageGroup: AgeGroup) => {
+    const anonChildId = generateAnonChildId();
+    const localId = `local_${anonChildId}`;
+    const consentDefaults = { data_optimization: false, research_use: false, biometric: false };
+    const settings: Record<string, unknown> = {};
+    if (data.sensorySensitive === 'yes') {
+      settings.flash_disabled = true;
+      settings.animation_speed = 'slow';
+    }
+    setLocalChildProfile({
+      id: localId,
+      anonChildId,
+      displayName: data.childName || 'おともだち',
+      ageGroup,
+      avatarId: 'avatar_01',
+      settings,
+      consentFlags: consentDefaults,
+    });
+    setLocalConsents(consentDefaults);
+    document.cookie = 'manas_demo_session=1; path=/; max-age=2592000; SameSite=Lax';
+    clearChildCache();
+    clearSession();
+    router.push('/');
+  }, [data.childName, data.sensorySensitive, router]);
 
   // Final save
   const handleFinish = useCallback(async () => {
@@ -183,105 +202,88 @@ export function useOnboarding() {
       saveDisabilityType(disabilityType);
 
       if (!isSupabaseEnabled) {
-        const anonChildId = generateAnonChildId();
-        const localId = `local_${anonChildId}`;
-        const consentDefaults = { data_optimization: false, research_use: false, biometric: false };
-        const settings: Record<string, unknown> = {};
-        if (data.sensorySensitive === 'yes') {
-          settings.flash_disabled = true;
-          settings.animation_speed = 'slow';
+        saveLocallyAndRedirect(ageGroup);
+        return;
+      }
+
+      // Try Supabase path, fall back to localStorage on any failure
+      try {
+        let { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          const { error: reSignInError } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
+          if (reSignInError) throw new Error('auth_failed');
+          const { data: retryData } = await supabase.auth.getUser();
+          userData = retryData;
+          if (!userData.user) throw new Error('auth_failed');
         }
+
+        const anonChildId = generateAnonChildId();
+        const supportNeeds = buildSupportNeeds(data);
+
+        const { data: childRow, error: childError } = await supabase
+          .from('children')
+          .insert({
+            anon_child_id: anonChildId,
+            parent_user_id: userData.user.id,
+            display_name: data.childName || 'おともだち',
+            name: data.childName || 'おともだち',
+            age_group: ageGroup,
+            avatar_id: 'avatar_01',
+            parent_role: 'parent',
+            is_onboarded: true,
+            consent_flags: { data_optimization: false, research_use: false, biometric: false },
+            support_needs: supportNeeds,
+          })
+          .select('id')
+          .single();
+
+        if (childError) throw new Error(`insert_failed: ${childError.message}`);
+
+        // localStorage にもバックアップ保存
         setLocalChildProfile({
-          id: localId,
+          id: childRow?.id ?? `local_${anonChildId}`,
           anonChildId,
           displayName: data.childName || 'おともだち',
           ageGroup,
           avatarId: 'avatar_01',
-          settings,
-          consentFlags: consentDefaults,
+          settings: {},
+          consentFlags: { data_optimization: false, research_use: false, biometric: false },
         });
-        setLocalConsents(consentDefaults);
-        document.cookie = 'manas_demo_session=1; path=/; max-age=2592000; SameSite=Lax';
+
+        if (childRow) {
+          await supabase.from('child_profiles').insert({
+            child_id: childRow.id,
+            speech_level: data.speechLevel,
+            disability_types: data.disabilities,
+            concerns: data.concerns,
+            traits: [...data.behavioralTraits, ...data.socialTraits],
+            domain_answers: data.domainAnswers,
+          }); // non-critical, ignore errors
+
+          const domainLevels = Object.entries(data.domainAnswers).map(([domain, answer]) => ({
+            child_id: childRow.id,
+            domain,
+            current_level: estimateInitialLevel(answer),
+          }));
+          if (domainLevels.length > 0) {
+            await supabase.from('domain_progress').upsert(domainLevels, { onConflict: 'child_id,domain' });
+          }
+        }
+
         clearChildCache();
         clearSession();
         router.push('/');
-        return;
+      } catch (e) {
+        // Supabase failed — fall back to localStorage
+        console.warn('Supabase save failed, falling back to localStorage:', e);
+        saveLocallyAndRedirect(ageGroup);
       }
-
-      let { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        const { error: reSignInError } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
-        if (reSignInError) { setAuthError('ログイン状態が確認できません。最初からやり直してください。'); return; }
-        const { data: retryData } = await supabase.auth.getUser();
-        userData = retryData;
-        if (!userData.user) { setAuthError('ログイン状態が確認できません'); return; }
-      }
-
-      const anonChildId = generateAnonChildId();
-      const supportNeeds = buildSupportNeeds(data);
-
-      const { data: childRow, error: childError } = await supabase
-        .from('children')
-        .insert({
-          anon_child_id: anonChildId,
-          parent_user_id: userData.user.id,
-          display_name: data.childName || 'おともだち',
-          name: data.childName || 'おともだち',
-          age_group: ageGroup,
-          avatar_id: 'avatar_01',
-          parent_role: 'parent',
-          is_onboarded: true,
-          consent_flags: { data_optimization: false, research_use: false, biometric: false },
-          support_needs: supportNeeds,
-        })
-        .select('id')
-        .single();
-
-      if (childError) {
-        setAuthError(`お子さま情報の保存に失敗しました: ${childError.message}`);
-        return;
-      }
-
-      // localStorage にもバックアップ保存（Supabase不安定時のフォールバック用）
-      setLocalChildProfile({
-        id: childRow?.id ?? `local_${anonChildId}`,
-        anonChildId,
-        displayName: data.childName || 'おともだち',
-        ageGroup,
-        avatarId: 'avatar_01',
-        settings: {},
-        consentFlags: { data_optimization: false, research_use: false, biometric: false },
-      });
-
-      if (childRow) {
-        await supabase.from('child_profiles').insert({
-          child_id: childRow.id,
-          speech_level: data.speechLevel,
-          disability_types: data.disabilities,
-          concerns: data.concerns,
-          traits: [...data.behavioralTraits, ...data.socialTraits],
-          domain_answers: data.domainAnswers,
-        }); // non-critical, ignore errors
-
-        const domainLevels = Object.entries(data.domainAnswers).map(([domain, answer]) => ({
-          child_id: childRow.id,
-          domain,
-          current_level: estimateInitialLevel(answer),
-        }));
-        if (domainLevels.length > 0) {
-          await supabase.from('domain_progress').upsert(domainLevels, { onConflict: 'child_id,domain' });
-        }
-      }
-
-      clearChildCache();
-      clearSession();
-      router.push('/');
     } catch {
       setAuthError('保存中にエラーが発生しました');
     } finally {
       setSaving(false);
     }
-  }, [data, router]);
+  }, [data, router, saveLocallyAndRedirect]);
 
   const handleDebugReset = useCallback(() => {
     clearSession();
@@ -303,7 +305,6 @@ export function useOnboarding() {
   }, []);
 
   const showBackButton = screenIdx > 0;
-  const showSkip = currentScreen?.skippable && currentScreen.phase !== 'account' && currentScreen.phase !== 'preliminary';
 
   return {
     screenIdx,
@@ -316,10 +317,8 @@ export function useOnboarding() {
     currentScreen,
     progress,
     showBackButton,
-    showSkip,
     goForward,
     goBack,
-    handleSkip,
     handleYesNo,
     handleSingleSelect,
     handleChipToggle,

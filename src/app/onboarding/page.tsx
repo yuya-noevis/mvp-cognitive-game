@@ -24,10 +24,8 @@ export default function OnboardingPage() {
     currentScreen,
     progress,
     showBackButton,
-    showSkip,
     goForward,
     goBack,
-    handleSkip,
     handleYesNo,
     handleSingleSelect,
     handleChipToggle,
@@ -59,15 +57,9 @@ export default function OnboardingPage() {
               <div className="w-6 flex-shrink-0" />
             )}
             <CosmicProgressBar progress={progress} className="flex-1" />
-            {showSkip ? (
-              <button onClick={handleSkip} className="flex-shrink-0 text-sm text-cosmic font-medium">
-                スキップ
-              </button>
-            ) : (
-              <button onClick={handleDebugReset} className="flex-shrink-0 text-xs text-moon/60 border border-moon/30 rounded-lg px-2 py-1 active:bg-nebula/20">
-                RESET
-              </button>
-            )}
+            <button onClick={handleDebugReset} className="flex-shrink-0 text-xs text-moon/60 border border-moon/30 rounded-lg px-2 py-1 active:bg-nebula/20">
+              RESET
+            </button>
           </div>
           {/* Phase label */}
           {currentScreen?.phaseLabel && (
@@ -79,7 +71,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Content area */}
-      <div className="relative z-10 flex flex-col min-h-screen pt-28 pb-0">
+      <div className="relative z-10 flex flex-col min-h-screen pt-36 pb-0">
         <div className="flex-1 max-w-[430px] mx-auto w-full px-5">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
