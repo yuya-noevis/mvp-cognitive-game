@@ -5,6 +5,7 @@ export type DemoType =
   | 'wait-and-tap'
   | 'remember-sequence'
   | 'match-shape'
+  | 'rule-change'
   | 'swipe-path'
   | 'select-word'
   | 'match-emotion'
@@ -24,81 +25,81 @@ export interface GameInstructionData {
 export const GAME_INSTRUCTIONS: Record<IntegratedGameId, GameInstructionData> = {
   'hikari-rescue': {
     singleWord: 'タッチ！',
-    shortSentence: 'ひかったら タッチしてね',
+    shortSentence: 'ひかる いきものだけ タッチしてね',
     steps: [
-      'ひかる いきものが でてくるよ',
-      'ひかったら タッチして たすけよう',
-      'トゲトゲは さわらないでね',
+      'いきものが つぎつぎ でてくるよ',
+      'ひかっている いきものだけ タッチしよう',
+      'ひかっていないのは さわらないでね',
     ],
     demoType: 'tap-target',
   },
   'oboete-susumu': {
-    singleWord: 'おなじ！',
-    shortSentence: 'おなじ じゅんばんで タッチしてね',
+    singleWord: 'おぼえて！',
+    shortSentence: 'ひかった じゅんばんで タッチしてね',
     steps: [
-      'ロボットが いろを みせるよ',
+      'ほうせきが じゅんばんに ひかるよ',
       'おなじ じゅんばんで タッチしよう',
-      'どんどん ながくなるよ',
+      'おぼえられたら もっと ながくなるよ',
     ],
     demoType: 'remember-sequence',
   },
   'rule-change': {
-    singleWord: 'かえて！',
+    singleWord: 'チェンジ！',
     shortSentence: 'ルールが かわるよ よくみてね',
     steps: [
-      'カードを なかまに わけよう',
-      'さいしょは いろで わけるよ',
-      'とちゅうで ルールが かわるよ',
+      'カードを いろ か かたちで わけよう',
+      'とちゅうで ルールが チェンジするよ',
+      'あたらしい ルールに きりかえてね',
     ],
-    demoType: 'match-shape',
+    demoType: 'rule-change',
   },
   'kurukuru-puzzle': {
     singleWord: 'おなじ！',
     shortSentence: 'おなじ かたちを みつけてね',
     steps: [
-      'いろんな かたちが でてくるよ',
-      'おなじ かたちを さがそう',
+      'うえの かたちと おなじものを さがそう',
       'くるくる まわっているのも あるよ',
+      'よくみて おなじ かたちを タッチしてね',
     ],
     demoType: 'match-shape',
   },
   'tanken-meiro': {
-    singleWord: 'すすめ！',
-    shortSentence: 'ゆびで みちを すすんでね',
+    singleWord: 'ゴール！',
+    shortSentence: 'めいろの みちを タッチしてね',
     steps: [
-      'めいろを たんけんしよう',
-      'ゆびで スワイプして すすもう',
+      'スタートから ゴールまで すすもう',
+      'みちを タッチして すすんでね',
       'いきどまりに きをつけてね',
     ],
     demoType: 'swipe-path',
   },
   'kotoba-ehon': {
     singleWord: 'どれ？',
-    shortSentence: 'いわれた ものを タッチしてね',
+    shortSentence: 'ことばに あう えを えらんでね',
     steps: [
-      'おとを よく きいてね',
-      'いわれた ものの えを タッチしよう',
+      'ことばが きこえるよ よくきいてね',
+      'あっている えを タッチしよう',
       'いろんな ことばが でてくるよ',
     ],
     demoType: 'select-word',
   },
   'kimochi-friends': {
     singleWord: 'きもち！',
-    shortSentence: 'おなじ きもちの かおを さがしてね',
+    shortSentence: 'どんな きもちか えらんでね',
     steps: [
-      'どうぶつの かおを みてね',
-      'おなじ きもちの かおを さがそう',
-      'うれしい、かなしい、おこってる...',
+      'かおの ひょうじょうを みてね',
+      'うれしい、かなしい、おこっている...',
+      'おなじ きもちを タッチしよう',
     ],
     demoType: 'match-emotion',
   },
   'touch-adventure': {
     singleWord: 'タッチ！',
-    shortSentence: 'まるに タッチしてね',
+    shortSentence: 'でてきた まるを タッチしてね',
     steps: [
-      'まるが でてくるよ',
-      'じょうずに タッチしよう',
-      'ちいさいのも あるよ がんばって',
+      'まるが でてくるよ すばやく タッチ！',
+      'ちいさい まるも あるよ',
+      'はやく ただしく タッチしてね',
     ],
     demoType: 'drag-target',
   },

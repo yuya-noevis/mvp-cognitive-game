@@ -89,7 +89,7 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
   return (
     <GameShell gameName="ことばキャッチ" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full max-w-md">
+      <div className="flex flex-col items-center w-full">
         {/* Listening phase */}
         {(phase === 'listening' || phase === 'choosing') && trial && (
           <>

@@ -141,7 +141,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
 
   return (
     <GameShell gameName="まって！ストップ" gameId="matte-stop" session={session} maxTrials={maxTrials}>
-      <div className="flex flex-col items-center justify-center w-full max-w-md">
+      <div className="flex flex-col items-center justify-center w-full">
         {/* Instruction */}
         <div className="mb-6 text-center">
           <p className="text-lg font-medium text-cosmic-light">

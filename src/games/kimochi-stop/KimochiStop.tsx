@@ -173,7 +173,7 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
   return (
     <GameShell gameName="きもちストップ" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full max-w-md">
+      <div className="flex flex-col items-center w-full">
         {/* Rule indicator */}
         <div className="mb-4 text-center p-3 rounded-xl"
              style={{ background: 'var(--color-info-bg)' }}>

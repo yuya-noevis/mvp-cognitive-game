@@ -115,10 +115,12 @@ export function useGameSession({
 
   // DB session ID (may differ from local UUID if DB is used)
   const dbSessionIdRef = useRef<string | null>(null);
+  // Promise for DB session creation (to await in endSession)
+  const dbSessionPromiseRef = useRef<Promise<string | null> | null>(null);
   // Track if DB session creation was attempted
   const dbSessionCreatedRef = useRef(false);
-  // Trial buffer for batch inserts
-  const trialBufferRef = useRef<TrialRecord[]>([]);
+  // Trial buffer for batch inserts (buffered regardless of DB session readiness)
+  const trialBufferRef = useRef<Omit<TrialRecord, 'session_id'>[]>([]);
   // Session start time for duration calculation
   const sessionStartRef = useRef<number>(0);
 
@@ -172,15 +174,28 @@ export function useGameSession({
       !isSessionEnded
     ) {
       dbSessionCreatedRef.current = true;
-      createGameSession(resolvedChildId, gameConfig.id, difficulty).then((id) => {
-        dbSessionIdRef.current = id;
+      const promise = createGameSession(resolvedChildId, gameConfig.id, difficulty);
+      dbSessionPromiseRef.current = promise;
+      promise.then((id) => {
+        if (id) {
+          console.log('[GameSession] DB session created (lazy):', id);
+          dbSessionIdRef.current = id;
+          // Flush any trials buffered before DB session was ready
+          if (trialBufferRef.current.length > 0) {
+            const batch = trialBufferRef.current.map(t => ({ ...t, session_id: id }));
+            trialBufferRef.current = [];
+            saveTrialBatch(batch);
+          }
+        }
       });
     }
   }, [sessionId, resolvedChildId, isSessionEnded, gameConfig.id, difficulty]);
 
   const flushTrialBuffer = useCallback(async () => {
     if (trialBufferRef.current.length === 0) return;
-    const batch = [...trialBufferRef.current];
+    const dbId = dbSessionIdRef.current;
+    if (!dbId) return; // Can't flush without session_id; will be flushed when available
+    const batch = trialBufferRef.current.map(t => ({ ...t, session_id: dbId }));
     trialBufferRef.current = [];
     await saveTrialBatch(batch);
   }, []);
@@ -216,10 +231,22 @@ export function useGameSession({
     // Create DB session if childId available
     dbSessionCreatedRef.current = false;
     dbSessionIdRef.current = null;
+    dbSessionPromiseRef.current = null;
     if (resolvedChildId) {
       dbSessionCreatedRef.current = true;
-      createGameSession(resolvedChildId, gameConfig.id, adjustedDiff).then((id) => {
-        dbSessionIdRef.current = id;
+      const promise = createGameSession(resolvedChildId, gameConfig.id, adjustedDiff);
+      dbSessionPromiseRef.current = promise;
+      promise.then((id) => {
+        if (id) {
+          console.log('[GameSession] DB session created:', id);
+          dbSessionIdRef.current = id;
+          // Flush any trials buffered before DB session was ready
+          if (trialBufferRef.current.length > 0) {
+            const batch = trialBufferRef.current.map(t => ({ ...t, session_id: id }));
+            trialBufferRef.current = [];
+            saveTrialBatch(batch);
+          }
+        }
       });
     }
   }, [gameConfig, ageGroup, resolvedChildId]);
@@ -280,28 +307,25 @@ export function useGameSession({
       hints_used: completed.hintsUsed,
     }, completed.trialId);
 
-    // Buffer trial for DB persistence
-    if (dbSessionIdRef.current) {
-      trialBufferRef.current.push({
-        session_id: dbSessionIdRef.current,
-        trial_number: completed.trialNumber,
-        target_domain: gameConfig.primary_domain,
-        difficulty: completed.difficulty,
-        stimulus: completed.stimulus,
-        correct_answer: completed.correctAnswer,
-        response: completed.response as unknown as Record<string, unknown> | undefined,
-        is_correct: isCorrect,
-        reaction_time_ms: completed.reactionTimeMs ?? undefined,
-        error_type: errorType,
-        hints_used: completed.hintsUsed,
-        started_at: new Date(completed.startedAt).toISOString(),
-        ended_at: new Date().toISOString(),
-      });
+    // Always buffer trial for DB persistence (session_id assigned at flush time)
+    trialBufferRef.current.push({
+      trial_number: completed.trialNumber,
+      target_domain: gameConfig.primary_domain,
+      difficulty: completed.difficulty,
+      stimulus: completed.stimulus,
+      correct_answer: completed.correctAnswer,
+      response: completed.response as unknown as Record<string, unknown> | undefined,
+      is_correct: isCorrect,
+      reaction_time_ms: completed.reactionTimeMs ?? undefined,
+      error_type: errorType,
+      hints_used: completed.hintsUsed,
+      started_at: new Date(completed.startedAt).toISOString(),
+      ended_at: new Date().toISOString(),
+    });
 
-      // Flush when buffer reaches batch size
-      if (trialBufferRef.current.length >= TRIAL_BATCH_SIZE) {
-        flushTrialBuffer();
-      }
+    // Flush when buffer reaches batch size and DB session is ready
+    if (trialBufferRef.current.length >= TRIAL_BATCH_SIZE && dbSessionIdRef.current) {
+      flushTrialBuffer();
     }
 
     // Safety check
@@ -380,20 +404,36 @@ export function useGameSession({
     });
     loggerRef.current.flush();
 
+    const durationMs = nowMs() - sessionStartRef.current;
+    const summary = {
+      trial_count: totalTrials,
+      correct_count: totalCorrect,
+      accuracy: totalTrials > 0 ? totalCorrect / totalTrials : 0,
+      hints_used: 0,
+      breaks_taken: 0,
+      duration_ms: durationMs,
+    };
+
     // Flush remaining trials and end DB session
-    if (dbSessionIdRef.current) {
-      flushTrialBuffer().then(() => {
-        const durationMs = nowMs() - sessionStartRef.current;
-        endGameSessionDb(dbSessionIdRef.current!, reason, difficulty, {
-          trial_count: totalTrials,
-          correct_count: totalCorrect,
-          accuracy: totalTrials > 0 ? totalCorrect / totalTrials : 0,
-          hints_used: 0,
-          breaks_taken: 0,
-          duration_ms: durationMs,
-        });
-      });
-    }
+    // Await the DB session promise if it hasn't resolved yet
+    (async () => {
+      let dbId = dbSessionIdRef.current;
+      if (!dbId && dbSessionPromiseRef.current) {
+        dbId = await dbSessionPromiseRef.current;
+      }
+      if (dbId) {
+        // Flush any remaining buffered trials
+        if (trialBufferRef.current.length > 0) {
+          const batch = trialBufferRef.current.map(t => ({ ...t, session_id: dbId! }));
+          trialBufferRef.current = [];
+          await saveTrialBatch(batch);
+        }
+        console.log('[GameSession] Ending DB session:', dbId, summary);
+        await endGameSessionDb(dbId, reason, difficulty, summary);
+      } else {
+        console.warn('[GameSession] No DB session ID available, records not saved to Supabase');
+      }
+    })();
   }, [totalTrials, totalCorrect, difficulty, flushTrialBuffer]);
 
   return {

@@ -6,7 +6,7 @@ import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { katachiSagashiConfig } from './config';
-import { nowMs, shuffle, randomInt } from '@/lib/utils';
+import { nowMs, shuffle, shuffleWithBiasGuard, randomInt } from '@/lib/utils';
 
 interface KatachiSagashiProps {
   ageGroup: AgeGroup;
@@ -42,6 +42,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
   const [target, setTarget] = useState<typeof SHAPES[0] | null>(null);
   const [choices, setChoices] = useState<ShapeChoice[]>([]);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const recentPositionsRef = React.useRef<number[]>([]);
 
   const maxTrials = maxTrialsProp ?? katachiSagashiConfig.trial_count_range.max;
   const choiceCount = (session.difficulty.choice_count as number) || 2;
@@ -67,7 +68,10 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
       })),
     ];
 
-    return { targetShape, choices: shuffle(allChoices) };
+    return {
+      targetShape,
+      choices: shuffleWithBiasGuard(allChoices, c => c.isTarget, recentPositionsRef.current),
+    };
   }, [choiceCount, rotationDeg]);
 
   const nextTrial = useCallback(() => {
@@ -135,7 +139,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
       )}
 
       {/* Choices */}
-      <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+      <div className="grid grid-cols-2 gap-4 w-full">
         {choices.map((choice) => (
           <button
             key={choice.id}

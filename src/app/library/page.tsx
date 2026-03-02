@@ -2,8 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { GAME_LIST } from '@/games';
+import { INTEGRATED_GAME_MAP } from '@/games/integrated';
+import type { IntegratedGameId } from '@/games/integrated/types';
 import { useChildProfile } from '@/hooks/useChildProfile';
 import { getRecentSessions, type RecentSessionRow } from '@/lib/supabase/game-persistence';
+import { loadMixedSessionRecords, type MixedSessionRecord } from '@/features/session/mixed-session-record';
 import type { GameId } from '@/types';
 
 const GAME_DISPLAY_NAMES: Record<string, string> = Object.fromEntries(
@@ -26,6 +29,10 @@ function formatSessionDate(iso: string): string {
     d.getFullYear() === yesterday.getFullYear();
   if (isYesterday) return 'きのう';
   return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function formatTimestamp(ts: number): string {
+  return formatSessionDate(new Date(ts).toISOString());
 }
 
 function SessionItem({ session }: { session: RecentSessionRow }) {
@@ -59,12 +66,37 @@ function SessionItem({ session }: { session: RecentSessionRow }) {
   );
 }
 
+function MixedSessionItem({ record }: { record: MixedSessionRecord }) {
+  const gameNames = record.gameIds
+    .map(id => INTEGRATED_GAME_MAP[id as IntegratedGameId]?.name ?? id)
+    .join('・');
+
+  return (
+    <li
+      className="flex items-center justify-between py-3 px-4 rounded-xl border border-galaxy-light"
+      style={{ background: 'rgba(255,255,255,0.06)' }}
+    >
+      <div className="min-w-0 flex-1">
+        <span className="text-sm font-medium text-stardust truncate block">{gameNames}</span>
+        <span className="text-xs text-moon">{formatTimestamp(record.timestamp)}</span>
+      </div>
+      <span className="text-sm text-moon flex-shrink-0 ml-2">
+        {record.totalCorrect}/{record.totalAttempts} せいかい
+      </span>
+    </li>
+  );
+}
+
 export default function LibraryPage() {
   const { child, loading: profileLoading } = useChildProfile();
   const [sessions, setSessions] = useState<RecentSessionRow[]>([]);
+  const [mixedRecords, setMixedRecords] = useState<MixedSessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Load mixed session records from localStorage
+    setMixedRecords(loadMixedSessionRecords());
+
     if (!child) {
       setLoading(false);
       return;
@@ -77,6 +109,8 @@ export default function LibraryPage() {
 
   const isLoading = profileLoading || loading;
   const hasSessions = sessions.length > 0;
+  const hasMixedRecords = mixedRecords.length > 0;
+  const hasAnyRecords = hasSessions || hasMixedRecords;
 
   return (
     <div
@@ -87,9 +121,26 @@ export default function LibraryPage() {
     >
       <h1 className="text-xl font-bold text-stardust">きろく</h1>
 
-      {/* れんしゅうのきろく（レポートに当たる部分） */}
+      {/* 混合セッションのきろく */}
+      {hasMixedRecords && (
+        <section className="mt-6">
+          <h2 className="text-sm font-bold text-moon mb-3">セッションのきろく</h2>
+          <div
+            className="rounded-2xl border border-galaxy-light p-4"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
+          >
+            <ul className="space-y-2">
+              {mixedRecords.map((record) => (
+                <MixedSessionItem key={record.id} record={record} />
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {/* れんしゅうのきろく（フリープレイ） */}
       <section className="mt-6">
-        <h2 className="text-sm font-bold text-moon mb-3">れんしゅうのきろく</h2>
+        <h2 className="text-sm font-bold text-moon mb-3">フリープレイのきろく</h2>
         <div
           className="rounded-2xl border border-galaxy-light p-4 min-h-[120px]"
           style={{ background: 'rgba(255,255,255,0.06)' }}
@@ -103,7 +154,11 @@ export default function LibraryPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-moon">まだ きろくが ないよ。ゲームで あそぶと きろくが のるよ。</p>
+            <p className="text-sm text-moon">
+              {hasAnyRecords
+                ? 'フリープレイの きろくは まだないよ。'
+                : 'まだ きろくが ないよ。ゲームで あそぶと きろくが のるよ。'}
+            </p>
           )}
         </div>
       </section>

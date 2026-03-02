@@ -351,21 +351,42 @@ export default function IntegratedGamePage() {
             />
           </div>
 
-          {/* "?" button to re-show instructions */}
-          {hasSeen && (
+          {/* Top-left buttons: home + instruction help */}
+          <div className="fixed top-12 left-4 z-50 flex gap-2">
             <button
-              onClick={handleShowInstruction}
-              className="fixed top-12 left-4 z-50 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-transform active:scale-90"
+              onClick={() => {
+                if (window.confirm('ホームにもどる？')) {
+                  router.push('/');
+                }
+              }}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-transform active:scale-90"
               style={{
                 background: 'rgba(255, 255, 255, 0.1)',
                 color: '#B8B8D0',
                 backdropFilter: 'blur(8px)',
               }}
-              aria-label="指示を表示"
+              aria-label="ホームに戻る"
             >
-              ?
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
             </button>
-          )}
+            {hasSeen && (
+              <button
+                onClick={handleShowInstruction}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-transform active:scale-90"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: '#B8B8D0',
+                  backdropFilter: 'blur(8px)',
+                }}
+                aria-label="指示を表示"
+              >
+                ?
+              </button>
+            )}
+          </div>
 
           <GameComponent
             key={gameKey}

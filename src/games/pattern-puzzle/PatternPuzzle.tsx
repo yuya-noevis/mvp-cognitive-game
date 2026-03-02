@@ -6,7 +6,7 @@ import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { patternPuzzleConfig } from './config';
-import { nowMs, shuffle, randomInt } from '@/lib/utils';
+import { nowMs, shuffle, shuffleWithBiasGuard, randomInt } from '@/lib/utils';
 
 interface PatternPuzzleProps {
   ageGroup: AgeGroup;
@@ -33,7 +33,7 @@ interface PatternTrial {
   choices: { id: string; shape: string; color: string; isCorrect: boolean }[];
 }
 
-function generatePatternTrial(patternType: string, choiceCount: number): PatternTrial {
+function generatePatternTrial(patternType: string, choiceCount: number, recentPositions?: number[]): PatternTrial {
   const shapeIdx = randomInt(0, SHAPES.length - 1);
   const colorIdx = randomInt(0, COLORS.length - 1);
 
@@ -116,10 +116,13 @@ function generatePatternTrial(patternType: string, choiceCount: number): Pattern
     });
   }
 
+  const allChoices = [correctChoice, ...distractors];
   return {
     grid,
     correctAnswer: { shape: correctShape, color: correctColor },
-    choices: shuffle([correctChoice, ...distractors]),
+    choices: recentPositions
+      ? shuffleWithBiasGuard(allChoices, c => c.isCorrect, recentPositions)
+      : shuffle(allChoices),
   };
 }
 
@@ -129,6 +132,7 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
   const [phase, setPhase] = useState<Phase>('ready');
   const [trial, setTrial] = useState<PatternTrial | null>(null);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const recentPositionsRef = React.useRef<number[]>([]);
 
   const effectiveMaxTrials = stageModeTrials ?? patternPuzzleConfig.trial_count_range.max;
   const patternType = (session.difficulty.pattern_type as string) || 'repeat';
@@ -140,7 +144,7 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
       return;
     }
 
-    const newTrial = generatePatternTrial(patternType, choiceCount);
+    const newTrial = generatePatternTrial(patternType, choiceCount, recentPositionsRef.current);
     setTrial(newTrial);
     setPhase('showing');
 
@@ -183,7 +187,7 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
   return (
     <GameShell gameName="パターンパズル" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full max-w-md">
+      <div className="flex flex-col items-center w-full">
         <p className="text-lg font-medium mb-4" style={{ color: 'var(--color-primary-dark)' }}>
           ？に はいるのは どれ？
         </p>

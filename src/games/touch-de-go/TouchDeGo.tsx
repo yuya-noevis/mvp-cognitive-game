@@ -131,7 +131,7 @@ export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTri
   return (
     <GameShell gameName="タッチでGO!" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full max-w-md">
+      <div className="flex flex-col items-center w-full">
         <p className="text-lg font-medium mb-4" style={{ color: 'var(--color-primary-dark)' }}>
           でてきたら すばやく タップ！
         </p>

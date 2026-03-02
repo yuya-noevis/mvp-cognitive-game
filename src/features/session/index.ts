@@ -23,5 +23,25 @@ export {
   type SessionContextValue,
 } from './SessionContext';
 
-export { SessionProgressBar, WarmupStartBanner } from './SessionProgressBar';
+export { SessionProgressBar, MixedSessionProgressBar, WarmupStartBanner } from './SessionProgressBar';
 export { SessionComplete } from './SessionComplete';
+
+export {
+  getMixedSessionConfig,
+  type MixedSessionConfig,
+  type SessionGameSlot,
+  type MixedSessionPlan,
+} from './mixed-session';
+
+export {
+  MixedSessionManager,
+  type MixedTrialResult,
+} from './mixed-session-manager';
+
+export {
+  selectGamesForSession,
+  saveRecentGames,
+  getRecentGames,
+} from './session-engine';
+
+export { GameTransition } from './GameTransition';

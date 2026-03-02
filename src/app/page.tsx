@@ -7,12 +7,12 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Mogura from '@/components/mascot/Mogura';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { useChildProfile, clearChildCache } from '@/hooks/useChildProfile';
-import { clearLocalProfile } from '@/lib/local-profile';
-import { supabase } from '@/lib/supabase/client';
+import { useChildProfile } from '@/hooks/useChildProfile';
 import { useTier, checkGameAccess } from '@/features/gating';
 import type { Tier } from '@/features/gating';
 import type { IntegratedGameId } from '@/games/integrated/types';
+import { INTEGRATED_GAME_MAP } from '@/games/integrated';
+import { loadMixedSessionRecords, type MixedSessionRecord } from '@/features/session/mixed-session-record';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -162,14 +162,14 @@ function GearIcon({ size = 24, className = '' }: { size?: number; className?: st
 
 export default function Home() {
   const router = useRouter();
-  const [showDevTools, setShowDevTools] = useState(process.env.NODE_ENV === 'development');
-  useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1') {
-      setShowDevTools(true);
-    }
-  }, []);
   const { child, loading, error } = useChildProfile();
-  const { tier, setDevTier } = useTier();
+  const { tier } = useTier();
+
+  // Mixed session records
+  const [recentRecords, setRecentRecords] = useState<MixedSessionRecord[]>([]);
+  useEffect(() => {
+    setRecentRecords(loadMixedSessionRecords().slice(0, 3));
+  }, []);
 
   // Redirect to login if no profile found (demo mode guard)
   useEffect(() => {
@@ -266,9 +266,71 @@ export default function Home() {
           </Link>
         </header>
 
-        {/* ---- Main Area: Building Map (horizontal scroll) ---- */}
+        {/* ---- Main CTA: あそぶ button ---- */}
+        <div className="flex flex-shrink-0 justify-center px-5 pt-6 pb-2">
+          <motion.button
+            type="button"
+            className="w-full max-w-[320px] py-5 rounded-3xl text-xl font-bold text-white transition-transform active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #6C3CE1, #8B5CF6)',
+              boxShadow: '0 4px 24px rgba(108, 60, 225, 0.4)',
+            }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.4, ease: 'easeOut' }}
+            onClick={() => router.push('/session/play')}
+          >
+            あそぶ
+          </motion.button>
+        </div>
+
+        {/* ---- Recent records ---- */}
+        {recentRecords.length > 0 && (
+          <div className="flex-shrink-0 px-5 pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium" style={{ color: 'rgba(184, 184, 208, 0.6)' }}>
+                さいきんの きろく
+              </span>
+              <Link href="/library" className="text-xs" style={{ color: 'rgba(108, 60, 225, 0.8)' }}>
+                すべてみる
+              </Link>
+            </div>
+            <div className="space-y-1.5">
+              {recentRecords.map((rec) => {
+                const names = rec.gameIds
+                  .map(id => INTEGRATED_GAME_MAP[id as IntegratedGameId]?.name ?? id)
+                  .join('・');
+                const dateStr = new Date(rec.timestamp).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+                return (
+                  <div
+                    key={rec.id}
+                    className="flex items-center justify-between py-2 px-3 rounded-xl"
+                    style={{ background: 'rgba(255, 255, 255, 0.06)' }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs text-stardust truncate block">{names}</span>
+                      <span className="text-[10px]" style={{ color: 'rgba(184, 184, 208, 0.5)' }}>{dateStr}</span>
+                    </div>
+                    <span className="text-xs text-moon flex-shrink-0 ml-2">
+                      {rec.totalCorrect}/{rec.totalAttempts}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ---- Section label ---- */}
+        <div className="flex-shrink-0 px-5 pt-4 pb-1">
+          <span className="text-xs font-medium" style={{ color: 'rgba(184, 184, 208, 0.6)' }}>
+            じゆうに あそぶ
+          </span>
+        </div>
+
+        {/* ---- Building Map (horizontal scroll) ---- */}
         <main
-          className="flex flex-1 items-center gap-10 overflow-x-auto overflow-y-hidden px-5 py-8"
+          className="flex flex-1 items-center gap-10 overflow-x-auto overflow-y-hidden px-5 py-4"
           style={{
             scrollSnapType: 'x mandatory',
             WebkitOverflowScrolling: 'touch',
@@ -390,44 +452,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* ---- Debug banner (top of screen, ?debug=1 or development) ---- */}
-      {showDevTools && (
-        <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between gap-2 px-4 py-2"
-             style={{ background: 'rgba(0,0,0,0.85)', paddingTop: 'calc(8px + env(safe-area-inset-top))' }}>
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-white/60 mr-1">Tier:</span>
-            {([1, 2, 3] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={`rounded-md px-2 py-1 text-xs font-bold ${
-                  tier === t
-                    ? 'bg-cosmic text-white'
-                    : 'text-white/50'
-                }`}
-                onClick={() => setDevTier(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="rounded-lg bg-red-500 px-4 py-1.5 text-sm font-bold text-white active:scale-95"
-            onClick={async () => {
-              clearChildCache();
-              clearLocalProfile();
-              document.cookie = 'manas_demo_session=; path=/; max-age=0';
-              try { sessionStorage.clear(); } catch {}
-              try { localStorage.removeItem('manas_tier'); localStorage.removeItem('manas_disability_type'); } catch {}
-              try { await supabase.auth.signOut(); } catch {}
-              window.location.href = '/onboarding';
-            }}
-          >
-            RESET
-          </button>
-        </div>
-      )}
 
       {/* ---- Parental Access (fixed bottom-right, long press) ---- */}
       <button

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTier } from '@/features/gating';
 import { useInstructionLevel } from '@/features/instruction';
 import { dailyTracker } from '@/features/session/daily-tracker';
@@ -34,6 +34,7 @@ export function DevToggle() {
   const { tier, setDevTier } = useTier();
   const { instructionLevel, setDevInstructionLevel } = useInstructionLevel();
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [trialOverride, setTrialOverride] = useState(() => {
     try { return localStorage.getItem(DEV_SESSION_OVERRIDE_KEY) ?? ''; } catch { return ''; }
   });
@@ -44,14 +45,37 @@ export function DevToggle() {
   // 本番ビルドでは非表示
   if (process.env.NODE_ENV === 'production') return null;
 
+  // Outside tap to close
+  const handleOutsideClick = useCallback((e: MouseEvent | TouchEvent) => {
+    if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+      setOpen(false);
+    }
+  }, []);
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (!open) return;
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [open, handleOutsideClick]);
+
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-2 z-[9999] w-8 h-8 rounded-full flex items-center justify-center text-xs"
-        style={{ background: 'rgba(255,255,255,0.15)', color: '#B8B8D0' }}
+        className="fixed z-[9999] w-9 h-9 rounded-full flex items-center justify-center text-sm"
+        style={{
+          bottom: 80,
+          right: 16,
+          background: 'rgba(255,255,255,0.12)',
+          color: '#B8B8D0',
+        }}
       >
-        D
+        🛠
       </button>
     );
   }
@@ -79,12 +103,19 @@ export function DevToggle() {
 
   return (
     <div
-      className="fixed bottom-20 right-2 z-[9999] rounded-xl p-3 space-y-2 text-xs"
-      style={{ background: 'rgba(20, 20, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)' }}
+      ref={panelRef}
+      className="fixed z-[9999] rounded-xl p-3 space-y-2 text-xs"
+      style={{
+        bottom: 80,
+        right: 16,
+        background: 'rgba(20, 20, 40, 0.95)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        maxWidth: 260,
+      }}
     >
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="font-bold" style={{ color: '#B8B8D0' }}>Dev</span>
-        <button onClick={() => setOpen(false)} style={{ color: '#B8B8D0' }}>x</button>
+        <span className="font-bold" style={{ color: '#B8B8D0' }}>🛠 Dev</span>
+        <button onClick={() => setOpen(false)} style={{ color: '#B8B8D0' }}>✕</button>
       </div>
 
       {/* Tier toggle */}

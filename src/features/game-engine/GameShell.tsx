@@ -231,32 +231,33 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
     <div className="flex min-h-dvh flex-col" style={{ background: bgGradient }}>
       <StarParticles count={20} />
 
-      {/* Header: h-12 px-4 */}
-      <header className="flex items-center gap-3 h-12 px-4 relative z-10">
-        {/* Mogura face */}
-        <div className="flex-shrink-0">
-          <Mogura expression="encouraging" size={28} />
-        </div>
+      {/* Header: hidden when mixed session provides its own controls */}
+      {!sessionCtx && (
+        <header className="flex items-center gap-3 h-10 px-4 relative z-10 flex-shrink-0">
+          {/* Mogura face */}
+          <div className="flex-shrink-0">
+            <Mogura expression="encouraging" size={28} />
+          </div>
 
-        {/* Progress bar — hidden when session context provides its own */}
-        {!sessionCtx && <CosmicProgressBar progress={progress} className="flex-1 mx-1" />}
-        {sessionCtx && <div className="flex-1" />}
+          {/* Progress bar */}
+          <CosmicProgressBar progress={progress} className="flex-1 mx-1" />
 
-        {/* Pause/settings button */}
-        <button
-          onClick={() => session.endSession('user_quit')}
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg tap-interactive"
-          aria-label="一時停止"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8B8D0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-          </svg>
-        </button>
-      </header>
+          {/* Pause/settings button */}
+          <button
+            onClick={() => session.endSession('user_quit')}
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg tap-interactive"
+            aria-label="一時停止"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8B8D0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+          </button>
+        </header>
+      )}
 
-      {/* Game content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 relative z-10">
+      {/* Game content — full width, vertically centered in available space */}
+      <main className={`flex-1 flex flex-col justify-center px-4 relative z-10 ${sessionCtx ? 'pt-10' : ''}`}>
         {children}
       </main>
     </div>

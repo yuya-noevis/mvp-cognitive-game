@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import type { InstructionLevel } from './instruction-level';
 import { INSTRUCTION_LEVELS } from './instruction-level';
 import type { IntegratedGameId } from '@/games/integrated/types';
+import { INTEGRATED_GAME_MAP } from '@/games/integrated/game-map';
 import { GAME_INSTRUCTIONS } from './game-instructions';
 import DemoAnimation from './DemoAnimation';
 
@@ -32,34 +34,20 @@ export default function GameInstruction({
 }: GameInstructionProps) {
   const config = INSTRUCTION_LEVELS[instructionLevel];
   const gameData = GAME_INSTRUCTIONS[gameId];
-  const [demoFinished, setDemoFinished] = useState(false);
-  const [isReplaying, setIsReplaying] = useState(false);
+  const gameConfig = INTEGRATED_GAME_MAP[gameId];
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [demoKey, setDemoKey] = useState(0);
   const audioPlayedRef = useRef(false);
+  const router = useRouter();
 
-  // 音声再生（L2-L4）
+  // 音声再生（L2-L4）— 初回のみ
   useEffect(() => {
     if (!config.showAudio || !audioEnabled || audioPlayedRef.current) return;
     audioPlayedRef.current = true;
 
     const text = instructionLevel === 'L2' ? gameData.singleWord : gameData.shortSentence;
-    // デモ開始後少し待ってから音声再生
     const timer = setTimeout(() => speakText(text), 800);
     return () => clearTimeout(timer);
-  }, [config.showAudio, audioEnabled, instructionLevel, gameData, demoKey]);
-
-  const handleDemoComplete = useCallback(() => {
-    setDemoFinished(true);
-    setIsReplaying(false);
-  }, []);
-
-  const handleReplay = useCallback(() => {
-    setDemoFinished(false);
-    setIsReplaying(true);
-    audioPlayedRef.current = false;
-    setDemoKey(k => k + 1);
-  }, []);
+  }, [config.showAudio, audioEnabled, instructionLevel, gameData]);
 
   const handleToggleAudio = useCallback(() => {
     setAudioEnabled(prev => !prev);
@@ -68,33 +56,60 @@ export default function GameInstruction({
     }
   }, [audioEnabled]);
 
+  const handleBack = useCallback(() => {
+    router.push('/');
+  }, [router]);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-space">
+      {/* Header: 戻るボタン + ゲームタイトル + 音声トグル */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 pt-3 pb-2 max-w-[430px] mx-auto"
+           style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
+        {/* 戻るボタン */}
+        <button
+          onClick={handleBack}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-90"
+          style={{ background: 'rgba(255,255,255,0.1)' }}
+          aria-label="もどる"
+        >
+          <span className="text-xl" style={{ color: '#E8E8F0' }}>←</span>
+        </button>
+
+        {/* ゲームタイトル（L2以上でテキスト表示、L1はアイコンのみ） */}
+        <div className="flex-1 text-center">
+          {instructionLevel === 'L1' ? (
+            <span className="text-xl">🎮</span>
+          ) : (
+            <span className="text-base font-bold" style={{ color: '#E8E8F0' }}>
+              {gameConfig?.name ?? ''}
+            </span>
+          )}
+        </div>
+
+        {/* 音声ON/OFFトグル (L4のみ) */}
+        {config.audioToggleable ? (
+          <button
+            onClick={handleToggleAudio}
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.1)' }}
+            aria-label={audioEnabled ? '音声オフ' : '音声オン'}
+          >
+            <span className="text-xl">{audioEnabled ? '🔊' : '🔇'}</span>
+          </button>
+        ) : (
+          <div className="w-10" /> /* spacer */
+        )}
+      </div>
+
       <motion.div
         className="w-full max-w-sm flex flex-col items-center gap-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        {/* L4: 音声ON/OFFトグル */}
-        {config.audioToggleable && (
-          <button
-            onClick={handleToggleAudio}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.1)' }}
-            aria-label={audioEnabled ? '音声オフ' : '音声オン'}
-          >
-            <span className="text-xl">{audioEnabled ? '🔊' : '🔇'}</span>
-          </button>
-        )}
-
-        {/* デモアニメーション */}
+        {/* デモアニメーション（無限ループ） */}
         <div className="w-full rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.05)' }}>
-          <DemoAnimation
-            key={demoKey}
-            demoType={gameData.demoType}
-            onComplete={handleDemoComplete}
-          />
+          <DemoAnimation demoType={gameData.demoType} />
         </div>
 
         {/* L2: アイコン表示 */}
@@ -152,40 +167,25 @@ export default function GameInstruction({
           </motion.div>
         )}
 
-        {/* ボタンエリア */}
-        <AnimatePresence>
-          {demoFinished && (
-            <motion.div
-              className="flex flex-col items-center gap-3 w-full"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* メインボタン: あそぶ / ▶ */}
-              <button
-                onClick={onComplete}
-                className="w-full py-4 rounded-2xl text-lg font-bold transition-transform active:scale-95"
-                style={{
-                  background: 'linear-gradient(135deg, #48BB78, #38A169)',
-                  color: '#FFFFFF',
-                  boxShadow: '0 4px 15px rgba(72, 187, 120, 0.3)',
-                }}
-              >
-                {instructionLevel === 'L1' ? '▶' : 'あそぶ ▶'}
-              </button>
-
-              {/* リプレイボタン */}
-              <button
-                onClick={handleReplay}
-                className="py-2 px-4 rounded-xl text-sm transition-transform active:scale-95"
-                style={{ color: '#B8B8D0' }}
-              >
-                {instructionLevel === 'L1' ? '🔄' : 'もういちど 🔄'}
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* あそぶボタン（常時表示） */}
+        <motion.div
+          className="w-full"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
+        >
+          <button
+            onClick={onComplete}
+            className="w-full py-4 rounded-2xl text-lg font-bold transition-transform active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #48BB78, #38A169)',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 15px rgba(72, 187, 120, 0.3)',
+            }}
+          >
+            {instructionLevel === 'L1' ? '▶' : 'あそぶ ▶'}
+          </button>
+        </motion.div>
       </motion.div>
     </div>
   );

@@ -45,7 +45,7 @@ function StarIcon({ size = 24, color = 'currentColor' }: { size?: number; color?
 // ---------------------------------------------------------------------------
 
 /** Routes where the nav bar should be hidden */
-const HIDDEN_ROUTES = ['/onboarding', '/login', '/consent', '/play/', '/stage/', '/game/'];
+const HIDDEN_ROUTES = ['/onboarding', '/login', '/consent', '/play/', '/stage/', '/game/', '/session/'];
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -59,7 +59,7 @@ export function BottomNav() {
 
   // "あそぶ" tap → launch highest-need game (for MVP, default to first game)
   const handlePlay = () => {
-    router.push('/play/hikari-catch');
+    router.push('/session/play');
   };
 
   return (

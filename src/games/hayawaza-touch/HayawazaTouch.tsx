@@ -151,7 +151,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
 
   return (
     <GameShell gameName="はやわざタッチ" session={session} maxTrials={maxTrials}>
-      <div className="flex flex-col items-center justify-center w-full max-w-md">
+      <div className="flex flex-col items-center justify-center w-full">
         {/* Instruction */}
         <div className="mb-6 text-center">
           <div className="flex items-center justify-center gap-1 text-lg font-medium flex-wrap" style={{ color: '#8B5CF6' }}>

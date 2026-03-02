@@ -139,7 +139,7 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
   return (
     <GameShell gameName="きもちよみとり" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full max-w-md">
+      <div className="flex flex-col items-center w-full">
         {/* Face display */}
         {targetEmotion && phase === 'showing' && (
           <>
