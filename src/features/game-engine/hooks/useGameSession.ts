@@ -24,10 +24,12 @@ import {
   saveTrialBatch,
   endGameSession as endGameSessionDb,
   saveEvents,
+  updateDailyMetrics,
 } from '@/lib/supabase/game-persistence';
 import type { BiometricInput } from '@/features/camera/types';
 import { useSessionContext } from '@/features/session/SessionContext';
 import { useChildProfile } from '@/hooks/useChildProfile';
+
 
 export interface UseGameSessionOptions {
   gameConfig: GameConfig;
@@ -105,6 +107,16 @@ export function useGameSession({
   const [totalTrials, setTotalTrials] = useState(0);
   const [totalCorrect, setTotalCorrect] = useState(0);
 
+  // Keep refs in sync with state so endSession always reads latest values (avoids stale closure)
+  const totalTrialsRef = useRef(0);
+  const totalCorrectRef = useRef(0);
+  const difficultyRef = useRef<DifficultyParams>({});
+  // Track whether endSession has been called (to avoid double-ending on unmount)
+  const sessionEndedRef = useRef(false);
+  // Stable refs for values needed in unmount cleanup (closure captures initial values otherwise)
+  const resolvedChildIdRef = useRef<string | undefined>(undefined);
+  const gameConfigRef = useRef(gameConfig);
+
   const trialEngineRef = useRef<TrialEngine>(new TrialEngine());
   const ddaEngineRef = useRef<DDAEngine>(new DDAEngine(gameConfig.dda, resolvedProfile));
   const frustrationRef = useRef<FrustrationDetector>(new FrustrationDetector());
@@ -145,6 +157,10 @@ export function useGameSession({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, isBreakActive, isSessionEnded]);
 
+  // Keep stable refs up to date
+  resolvedChildIdRef.current = resolvedChildId;
+  gameConfigRef.current = gameConfig;
+
   // Pass biometric data to DDA when it changes
   useEffect(() => {
     if (biometricFeed && ddaEngineRef.current.recordBiometricInput) {
@@ -159,7 +175,9 @@ export function useGameSession({
     if (adj !== undefined && adj < 0 && !warmupAdjAppliedRef.current) {
       warmupAdjAppliedRef.current = true;
       ddaEngineRef.current.adjustStartLevel(adj);
-      setDifficulty(ddaEngineRef.current.getCurrentParams());
+      const warmupDiff = ddaEngineRef.current.getCurrentParams();
+      setDifficulty(warmupDiff);
+      difficultyRef.current = warmupDiff;
     }
   }, [sessionCtx?.warmupAdjustment]);
 
@@ -200,6 +218,60 @@ export function useGameSession({
     await saveTrialBatch(batch);
   }, []);
 
+  // On unmount: flush trial buffer and close any open DB session (important for mixed session)
+  useEffect(() => {
+    return () => {
+      const dbId = dbSessionIdRef.current;
+      const hasTrials = trialBufferRef.current.length > 0;
+      const sessionNotEnded = !sessionEndedRef.current && dbId;
+
+      if (!dbId && !hasTrials) return;
+
+      const currentTrials = totalTrialsRef.current;
+      const currentCorrect = totalCorrectRef.current;
+      const currentDifficulty = difficultyRef.current;
+      const durationMs = nowMs() - sessionStartRef.current;
+
+      // Fire-and-forget on unmount
+      (async () => {
+        if (dbId && hasTrials) {
+          console.log('[GameSession] Unmount flush:', trialBufferRef.current.length, 'trials to session:', dbId);
+          const batch = trialBufferRef.current.map(t => ({ ...t, session_id: dbId }));
+          trialBufferRef.current = [];
+          await saveTrialBatch(batch);
+        }
+        // Close the DB session if endSession was never called (e.g. mixed session game switch)
+        if (sessionNotEnded) {
+          console.log('[GameSession] Unmount: closing open DB session:', dbId);
+          sessionEndedRef.current = true;
+          const summary = {
+            trial_count: currentTrials,
+            correct_count: currentCorrect,
+            accuracy: currentTrials > 0 ? currentCorrect / currentTrials : 0,
+            hints_used: 0,
+            breaks_taken: 0,
+            duration_ms: durationMs,
+          };
+          await endGameSessionDb(dbId, 'completed', currentDifficulty, summary);
+
+          // Update daily metrics
+          const childId = resolvedChildIdRef.current;
+          if (childId && currentTrials > 0) {
+            await updateDailyMetrics(
+              childId,
+              gameConfigRef.current.primary_domain,
+              'accuracy',
+              currentTrials > 0 ? currentCorrect / currentTrials : 0,
+              1,
+              currentTrials,
+            );
+          }
+        }
+      })();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const startSession = useCallback(() => {
     const newSessionId = uuidv4();
     setSessionId(newSessionId);
@@ -208,6 +280,9 @@ export function useGameSession({
     setTotalTrials(0);
     setTotalCorrect(0);
     setTrialNumber(0);
+    totalTrialsRef.current = 0;
+    totalCorrectRef.current = 0;
+    sessionEndedRef.current = false;
     sessionStartRef.current = nowMs();
 
     trialEngineRef.current.reset();
@@ -219,6 +294,7 @@ export function useGameSession({
     const ageAdjustments = gameConfig.age_adjustments[ageGroup] ?? {};
     const adjustedDiff = { ...initialDiff, ...ageAdjustments } as DifficultyParams;
     setDifficulty(adjustedDiff);
+    difficultyRef.current = adjustedDiff;
 
     loggerRef.current.setSessionId(newSessionId);
     frustrationRef.current.startSession(nowMs());
@@ -295,7 +371,11 @@ export function useGameSession({
     const completed = trialEngineRef.current.completeTrial(isCorrect, errorType);
     setCurrentTrial(null);
     setTotalTrials(prev => prev + 1);
-    if (isCorrect) setTotalCorrect(prev => prev + 1);
+    totalTrialsRef.current += 1;
+    if (isCorrect) {
+      setTotalCorrect(prev => prev + 1);
+      totalCorrectRef.current += 1;
+    }
 
     // Report to session manager if present
     sessionCtx?.onTrialComplete(isCorrect, completed.reactionTimeMs ?? 0);
@@ -349,7 +429,9 @@ export function useGameSession({
       if (safetyAction.type === 'show_hint' || safetyAction.type === 'reduce_difficulty') {
         const forceChange = ddaEngineRef.current.forceReduceDifficulty();
         if (forceChange) {
-          setDifficulty(ddaEngineRef.current.getCurrentParams());
+          const forceDiff = ddaEngineRef.current.getCurrentParams();
+          setDifficulty(forceDiff);
+          difficultyRef.current = forceDiff;
           loggerRef.current.log('adaptive_change', forceChange as unknown as Record<string, unknown>);
           return forceChange;
         }
@@ -359,7 +441,9 @@ export function useGameSession({
     // DDA adjustment
     const adaptiveChange = ddaEngineRef.current.recordTrialResult(isCorrect);
     if (adaptiveChange) {
-      setDifficulty(ddaEngineRef.current.getCurrentParams());
+      const adaptDiff = ddaEngineRef.current.getCurrentParams();
+      setDifficulty(adaptDiff);
+      difficultyRef.current = adaptDiff;
       loggerRef.current.log('adaptive_change', adaptiveChange as unknown as Record<string, unknown>);
       return adaptiveChange;
     }
@@ -391,50 +475,83 @@ export function useGameSession({
 
   const applyWarmupAdjustment = useCallback((adjustment: number) => {
     ddaEngineRef.current.adjustStartLevel(adjustment);
-    setDifficulty(ddaEngineRef.current.getCurrentParams());
+    const newDiff = ddaEngineRef.current.getCurrentParams();
+    setDifficulty(newDiff);
+    difficultyRef.current = newDiff;
   }, []);
 
   const endSession = useCallback((reason: SessionEndReason) => {
+    // Guard against double-calling endSession
+    if (sessionEndedRef.current) {
+      console.log('[GameSession] endSession already called, skipping duplicate call');
+      return;
+    }
+    sessionEndedRef.current = true;
+
+    // Use refs to avoid stale closure issues with React state
+    const currentTrials = totalTrialsRef.current;
+    const currentCorrect = totalCorrectRef.current;
+    const currentDifficulty = difficultyRef.current;
+
     setIsSessionEnded(true);
     loggerRef.current.log('session_end', {
       reason,
-      total_trials: totalTrials,
-      total_correct: totalCorrect,
-      final_difficulty: difficulty,
+      total_trials: currentTrials,
+      total_correct: currentCorrect,
+      final_difficulty: currentDifficulty,
     });
     loggerRef.current.flush();
 
     const durationMs = nowMs() - sessionStartRef.current;
     const summary = {
-      trial_count: totalTrials,
-      correct_count: totalCorrect,
-      accuracy: totalTrials > 0 ? totalCorrect / totalTrials : 0,
+      trial_count: currentTrials,
+      correct_count: currentCorrect,
+      accuracy: currentTrials > 0 ? currentCorrect / currentTrials : 0,
       hints_used: 0,
       breaks_taken: 0,
       duration_ms: durationMs,
     };
+
+    console.log('[GameSession] endSession called:', { reason, summary, dbSessionId: dbSessionIdRef.current });
 
     // Flush remaining trials and end DB session
     // Await the DB session promise if it hasn't resolved yet
     (async () => {
       let dbId = dbSessionIdRef.current;
       if (!dbId && dbSessionPromiseRef.current) {
+        console.log('[GameSession] Waiting for DB session promise...');
         dbId = await dbSessionPromiseRef.current;
       }
       if (dbId) {
         // Flush any remaining buffered trials
         if (trialBufferRef.current.length > 0) {
+          console.log('[GameSession] Flushing', trialBufferRef.current.length, 'buffered trials to DB session:', dbId);
           const batch = trialBufferRef.current.map(t => ({ ...t, session_id: dbId! }));
           trialBufferRef.current = [];
           await saveTrialBatch(batch);
         }
         console.log('[GameSession] Ending DB session:', dbId, summary);
-        await endGameSessionDb(dbId, reason, difficulty, summary);
+        await endGameSessionDb(dbId, reason, currentDifficulty, summary);
+
+        // Update daily metrics if we have accuracy data
+        if (resolvedChildId && currentTrials > 0) {
+          const accuracy = currentCorrect / currentTrials;
+          console.log('[GameSession] Updating daily metrics:', { domain: gameConfig.primary_domain, accuracy, currentTrials });
+          await updateDailyMetrics(
+            resolvedChildId,
+            gameConfig.primary_domain,
+            'accuracy',
+            accuracy,
+            1,
+            currentTrials,
+          );
+        }
       } else {
-        console.warn('[GameSession] No DB session ID available, records not saved to Supabase');
+        console.warn('[GameSession] No DB session ID available — records NOT saved to Supabase. resolvedChildId was:', resolvedChildId);
       }
     })();
-  }, [totalTrials, totalCorrect, difficulty, flushTrialBuffer]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedChildId, gameConfig.primary_domain]);
 
   return {
     sessionId,

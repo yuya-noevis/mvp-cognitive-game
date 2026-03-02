@@ -45,7 +45,12 @@ export async function createGameSession(
   gameId: GameId,
   initialDifficulty: DifficultyParams,
 ): Promise<string | null> {
-  if (!isSupabaseEnabled) return null;
+  if (!isSupabaseEnabled) {
+    console.warn('[game-persistence] Supabase not enabled — session not persisted.');
+    return null;
+  }
+
+  console.log('[game-persistence] createGameSession:', { anonChildId, gameId });
 
   const { data, error } = await supabase
     .from('sessions')
@@ -59,10 +64,11 @@ export async function createGameSession(
     .single();
 
   if (error) {
-    console.error('Failed to create game session:', error);
+    console.error('[game-persistence] Failed to create game session:', { error, anonChildId, gameId });
     return null;
   }
 
+  console.log('[game-persistence] Session created with id:', data.id);
   return data.id;
 }
 
@@ -85,12 +91,19 @@ export async function saveTrialBatch(
   }[],
 ): Promise<void> {
   if (trials.length === 0) return;
-  if (!isSupabaseEnabled) return;
+  if (!isSupabaseEnabled) {
+    console.warn('[game-persistence] Supabase not enabled — trials not persisted:', trials.length);
+    return;
+  }
+
+  console.log('[game-persistence] saveTrialBatch:', trials.length, 'trials to session:', trials[0]?.session_id);
 
   const { error } = await supabase.from('trials').insert(trials);
 
   if (error) {
-    console.error('Failed to save trial batch:', error);
+    console.error('[game-persistence] Failed to save trial batch:', { error, trialCount: trials.length, sessionId: trials[0]?.session_id });
+  } else {
+    console.log('[game-persistence] Trial batch saved:', trials.length, 'records');
   }
 }
 
@@ -101,7 +114,12 @@ export async function endGameSession(
   finalDifficulty: DifficultyParams,
   summary: SessionSummary,
 ): Promise<void> {
-  if (!isSupabaseEnabled) return;
+  if (!isSupabaseEnabled) {
+    console.warn('[game-persistence] Supabase not enabled — session end not persisted:', sessionId);
+    return;
+  }
+
+  console.log('[game-persistence] endGameSession:', { sessionId, endReason, summary });
 
   const { error } = await supabase
     .from('sessions')
@@ -114,7 +132,9 @@ export async function endGameSession(
     .eq('id', sessionId);
 
   if (error) {
-    console.error('Failed to end game session:', error);
+    console.error('[game-persistence] Failed to end game session:', { error, sessionId, endReason });
+  } else {
+    console.log('[game-persistence] Session ended successfully:', sessionId);
   }
 }
 
