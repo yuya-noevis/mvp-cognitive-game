@@ -144,8 +144,8 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('ready');
-    setTimeout(nextTrial, 800);
-  }, [nextTrial]);
+    setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   // Auto-start
   useEffect(() => {

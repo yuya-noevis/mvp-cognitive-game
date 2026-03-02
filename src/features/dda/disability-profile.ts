@@ -50,7 +50,7 @@ export const DDA_PROFILES: Record<DisabilityType, DDAProfile> = {
   },
   'id-severe': {
     disabilityType: 'id-severe',
-    targetAccuracyMin: 0.85,
+    targetAccuracyMin: 0.90,
     targetAccuracyMax: 0.95,
     difficultyUpThreshold: 3,
     difficultyDownThreshold: 1,

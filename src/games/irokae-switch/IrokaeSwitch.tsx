@@ -152,8 +152,8 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('ready');
-    feedbackTimerRef.current = setTimeout(nextTrial, 600);
-  }, [nextTrial]);
+    feedbackTimerRef.current = setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   useEffect(() => {
     if (session.sessionId && phase === 'ready' && session.totalTrials === 0) {

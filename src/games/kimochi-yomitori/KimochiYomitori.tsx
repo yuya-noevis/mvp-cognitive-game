@@ -127,8 +127,8 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('ready');
-    setTimeout(nextTrial, 600);
-  }, [nextTrial]);
+    setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   useEffect(() => {
     if (session.sessionId && phase === 'ready' && session.totalTrials === 0) {

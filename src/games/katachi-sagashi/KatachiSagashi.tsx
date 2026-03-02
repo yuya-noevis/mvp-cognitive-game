@@ -112,8 +112,8 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('ready');
-    setTimeout(nextTrial, 600);
-  }, [nextTrial]);
+    setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   useEffect(() => {
     if (session.sessionId && phase === 'ready' && session.totalTrials === 0) {

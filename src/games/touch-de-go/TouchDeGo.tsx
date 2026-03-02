@@ -117,8 +117,8 @@ export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTri
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('ready');
-    setTimeout(nextTrial, randomInt(300, 600));
-  }, [nextTrial]);
+    setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   useEffect(() => {
     if (session.sessionId && phase === 'ready' && session.totalTrials === 0) {

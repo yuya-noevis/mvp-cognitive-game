@@ -159,8 +159,8 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('iti');
-    setTimeout(nextTrial, randomInt(800, 1200));
-  }, [nextTrial]);
+    setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   useEffect(() => {
     if (session.sessionId && phase === 'ready' && session.totalTrials === 0) {

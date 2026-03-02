@@ -1,8 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { TrialResult } from './session-manager';
+import { updateDailyStreak } from '@/features/feedback/daily-streak';
+import type { DailyStreak } from '@/features/feedback/daily-streak';
+import { DailyStreakBadge, StreakGraceNotice } from '@/components/feedback/DailyStreakBadge';
 
 interface SessionCompleteProps {
   scoredResults: TrialResult[];
@@ -59,6 +62,25 @@ export function SessionComplete({
   const starCount = getStarCount(streakStats.accuracy);
   const message = getMessage(streakStats.accuracy);
 
+  // Daily streak update on session complete
+  const [dailyStreak, setDailyStreak] = useState<DailyStreak | null>(null);
+  const [graceConsumedToday, setGraceConsumedToday] = useState(false);
+  const [graceNoticeMsg, setGraceNoticeMsg] = useState<string | null>(null);
+  const [graceNoticeDismissed, setGraceNoticeDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const result = updateDailyStreak();
+      setDailyStreak(result.streak);
+      setGraceConsumedToday(result.graceConsumedToday);
+      if (result.sessionStartMessage && !result.graceConsumedToday) {
+        setGraceNoticeMsg(result.sessionStartMessage);
+      }
+    } catch {
+      // SSR or localStorage unavailable
+    }
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-space">
       <motion.div
@@ -78,6 +100,37 @@ export function SessionComplete({
         >
           {message}
         </motion.p>
+
+        {/* Daily streak badge */}
+        {dailyStreak && dailyStreak.currentDays > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 1.1 }}
+            className="w-full"
+          >
+            <DailyStreakBadge
+              streak={dailyStreak}
+              graceConsumedToday={graceConsumedToday}
+              className="w-full justify-center"
+            />
+          </motion.div>
+        )}
+
+        {/* Grace week unlock notice */}
+        {graceNoticeMsg && !graceNoticeDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.3 }}
+            className="w-full"
+          >
+            <StreakGraceNotice
+              message={graceNoticeMsg}
+              onDismiss={() => setGraceNoticeDismissed(true)}
+            />
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0 }}

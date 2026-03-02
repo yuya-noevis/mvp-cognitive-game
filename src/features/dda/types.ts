@@ -17,3 +17,7 @@ export {
   setDevDisabilityType,
   getDevDisabilityType,
 } from './disability-profile-store';
+
+// ITI (Inter-Trial Interval) config
+export type { ITIRange } from './iti-config';
+export { ITI_BY_DISABILITY, DEFAULT_ITI_MS, getITI, waitITI, withITI } from './iti-config';
