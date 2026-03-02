@@ -11,5 +11,5 @@ export {
   type FeedbackEffectType,
 } from './VisualFeedback';
 export { StreakTracker } from './streak-tracker';
-export { useFeedback } from './use-feedback';
-export { FeedbackContext, useFeedbackContext } from './FeedbackContext';
+export { useFeedback, type FeedbackCallbacks } from './use-feedback';
+export { FeedbackContext, useFeedbackContext, type FeedbackContextValue } from './FeedbackContext';

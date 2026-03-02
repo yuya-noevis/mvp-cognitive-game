@@ -7,6 +7,8 @@ import type { GameId, AgeGroup } from '@/types';
 import { GAME_CONFIGS } from '@/games';
 import { SearchIcon } from '@/components/icons';
 import { useChildProfile } from '@/hooks/useChildProfile';
+import { useInstructionLevel } from '@/features/instruction';
+import { UnifiedFeedback } from '@/components/feedback/UnifiedFeedback';
 
 // Lazy load all game components for performance
 const GAME_COMPONENTS: Record<GameId, React.ComponentType<{ ageGroup: AgeGroup; maxTrials?: number }>> = {
@@ -31,6 +33,7 @@ export default function GamePlayPage() {
   const params = useParams();
   const gameId = params.gameId as GameId;
   const { child, loading } = useChildProfile();
+  const { instructionLevel } = useInstructionLevel();
 
   const ageGroup: AgeGroup = child?.ageGroup ?? '6-9';
 
@@ -62,5 +65,9 @@ export default function GamePlayPage() {
     );
   }
 
-  return <GameComponent ageGroup={ageGroup} maxTrials={maxTrials} />;
+  return (
+    <UnifiedFeedback instructionLevel={instructionLevel}>
+      <GameComponent ageGroup={ageGroup} maxTrials={maxTrials} />
+    </UnifiedFeedback>
+  );
 }
