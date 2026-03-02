@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createSupabaseMiddlewareClient } from '@/lib/supabase/server';
 
-const PUBLIC_ROUTES = ['/login', '/signup', '/onboarding', '/debug-reset'];
+const PUBLIC_ROUTES = ['/login', '/signup', '/onboarding', '/onboarding/legacy', '/debug-reset'];
 
 /** Cookie name used to track demo-mode login */
 const DEMO_SESSION_COOKIE = 'manas_demo_session';
