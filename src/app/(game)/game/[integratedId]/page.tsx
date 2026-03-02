@@ -78,6 +78,7 @@ export default function IntegratedGamePage() {
     [triggerCorrect, triggerIncorrect, triggerNearMiss],
   );
 
+
   // Check localStorage for instruction seen
   useEffect(() => {
     try {

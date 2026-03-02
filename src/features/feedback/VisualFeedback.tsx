@@ -27,14 +27,38 @@ const INTENSITY_SCALE: Record<string, { scale: number; opacity: number; particle
   vivid: { scale: 1.5, opacity: 1, particleCount: 10 },
 };
 
+/**
+ * アニメーション「なし」設定時は即時完了させる。
+ * data-animation="none" が<html>に付いているとき、または
+ * prefers-reduced-motion: reduce のとき。
+ */
+function useReducedMotion(): boolean {
+  // SSR安全: typeof windowチェックはuseEffect内で行う想定だが、
+  // このhookはレンダー時に呼ばれるため、document属性を直接参照する
+  if (typeof document === 'undefined') return false;
+  const dataAnim = document.documentElement.getAttribute('data-animation');
+  if (dataAnim === 'none') return true;
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+  return false;
+}
+
 export function VisualFeedback({ type, intensity, onComplete }: VisualFeedbackProps) {
+  const reducedMotion = useReducedMotion();
+
   useEffect(() => {
     if (!type) return;
+    // アニメーション「なし」時は即時完了
+    const duration = reducedMotion ? 0 : DURATIONS[type];
     const timer = setTimeout(() => {
       onComplete?.();
-    }, DURATIONS[type]);
+    }, duration);
     return () => clearTimeout(timer);
-  }, [type, onComplete]);
+  }, [type, onComplete, reducedMotion]);
+
+  // アニメーション「なし」モード: エフェクトは表示しない（即時完了のみ）
+  if (reducedMotion) return null;
 
   const intensityConfig = INTENSITY_SCALE[intensity];
 
@@ -87,7 +111,7 @@ function CorrectEffect({ intensity }: { intensity: typeof INTENSITY_SCALE['stand
   );
 }
 
-/** 不正解: 画面全体が軽く揺れる 200ms */
+/** 不正解: 画面全体が軽く揺れる 200ms（罰感なし） */
 function IncorrectEffect() {
   return (
     <motion.div

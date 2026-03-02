@@ -186,57 +186,174 @@ export function TrialFeedback({
 }
 
 /**
- * SessionCompleteFeedback - Shown when session ends
- * Rocket flies up + sparkle burst + star rating
+ * SessionCompleteFeedback - セッション完了時の演出
+ *
+ * 設計書v3仕様:
+ * - 「よく がんばったね！」メッセージ
+ * - プレイしたゲーム数・獲得スター表示
+ * - Moguraの拍手アニメーション
+ * - 自動遷移なし（「もどる」ボタンでユーザーが制御）
+ * - ティア連動の視覚強度
  */
-export function SessionCompleteFeedback({ onComplete }: { onComplete: () => void }) {
-  const [visible, setVisible] = useState(true);
+interface SessionCompleteFeedbackProps {
+  /** プレイしたゲーム数 */
+  gameCount?: number;
+  /** 獲得スター数（1〜3） */
+  starCount?: number;
+  /** 視覚強度（ティアに連動） */
+  intensity?: 'subtle' | 'standard' | 'vivid';
+  /** もどるボタンのコールバック */
+  onBack: () => void;
+}
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setVisible(false);
-      onComplete();
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+export function SessionCompleteFeedback({
+  gameCount = 1,
+  starCount = 3,
+  intensity = 'standard',
+  onBack,
+}: SessionCompleteFeedbackProps) {
+  // コンフェッティ (vivid のみ)
+  const confetti = useMemo(() => {
+    if (intensity !== 'vivid') return [];
+    return Array.from({ length: 14 }, (_, i) => ({
+      id: i,
+      left: `${5 + Math.random() * 90}%`,
+      delay: `${Math.random() * 0.6}s`,
+      size: 16 + Math.random() * 14,
+      rotation: Math.random() * 720,
+    }));
+  }, [intensity]);
 
-  if (!visible) return null;
+  // 星スパークル（standard + vivid）
+  const sparkles = useMemo(() => {
+    if (intensity === 'subtle') return [];
+    const count = intensity === 'vivid' ? 8 : 5;
+    return Array.from({ length: count }, (_, i) => {
+      const angle = (360 / count) * i;
+      const rad = (angle * Math.PI) / 180;
+      const dist = intensity === 'vivid' ? 110 : 80;
+      return {
+        id: i,
+        tx: Math.cos(rad) * dist,
+        ty: Math.sin(rad) * dist,
+        delay: `${i * 0.06}s`,
+        size: 20 + Math.random() * 12,
+      };
+    });
+  }, [intensity]);
+
+  const clampedStars = Math.min(3, Math.max(0, starCount));
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-      {/* Rocket flying up */}
-      <div className="animate-rocket-fly fixed left-1/2 -translate-x-1/2 bottom-0">
-        <Image src="/assets/rocket.png" alt="" width={60} height={60} />
+    <div
+      className="fixed inset-0 flex flex-col items-center justify-center z-[70]"
+      style={{
+        background: 'linear-gradient(180deg, #0D0D2B 0%, #1A1A4A 50%, #0D0D2B 100%)',
+      }}
+    >
+      {/* コンフェッティ（vivid のみ） */}
+      {confetti.map((c) => (
+        <div
+          key={c.id}
+          className="absolute top-0 animate-confetti-fall pointer-events-none"
+          style={{
+            left: c.left,
+            animationDelay: c.delay,
+          }}
+        >
+          <Image
+            src="/assets/effects/effect-confetti.png"
+            alt=""
+            width={c.size}
+            height={c.size}
+          />
+        </div>
+      ))}
+
+      {/* Mogura 拍手アニメーション */}
+      <div className="animate-pop-in mb-4">
+        <Mogura expression="clapping" size={120} />
       </div>
 
-      {/* Sparkle burst at center */}
-      {Array.from({ length: 8 }).map((_, i) => {
-        const angle = (360 / 8) * i;
-        const rad = (angle * Math.PI) / 180;
-        const tx = Math.cos(rad) * 80;
-        const ty = Math.sin(rad) * 80;
-        return (
+      {/* メインメッセージ */}
+      <h2
+        className="text-2xl font-bold mb-2 animate-fade-in-up"
+        style={{ color: '#F0F0FF', animationDelay: '150ms' }}
+      >
+        よく がんばったね！
+      </h2>
+
+      {/* プレイ情報 */}
+      <p
+        className="text-base mb-6 animate-fade-in-up"
+        style={{ color: '#B8B8D0', animationDelay: '250ms' }}
+      >
+        きょう <span style={{ color: '#FFD43B', fontWeight: 'bold' }}>{gameCount}</span> こ あそんだよ！
+      </p>
+
+      {/* スター表示 */}
+      <div
+        className="flex items-center justify-center gap-2 mb-8 animate-fade-in-up"
+        style={{ animationDelay: '350ms' }}
+      >
+        {[1, 2, 3].map((star) => (
           <div
-            key={i}
-            className="absolute animate-particle-burst"
-            style={{
-              '--tx': `${tx * 0.5}px`,
-              '--ty': `${ty * 0.5}px`,
-              '--tx2': `${tx}px`,
-              '--ty2': `${ty}px`,
-              animationDelay: `${0.3 + i * 0.05}s`,
-            } as React.CSSProperties}
+            key={star}
+            className={star <= clampedStars ? 'animate-pop-in' : ''}
+            style={{ animationDelay: `${350 + star * 80}ms` }}
           >
-            <Image
-              src="/assets/effects/effect-sparkle.png"
-              alt=""
-              width={24}
-              height={24}
-              className="pointer-events-none"
-            />
+            {/* 星スパークル（star === 2 中央から放射） */}
+            {star === 2 && sparkles.map((s) => (
+              <div
+                key={s.id}
+                className="absolute animate-particle-burst pointer-events-none"
+                style={{
+                  '--tx': `${s.tx * 0.5}px`,
+                  '--ty': `${s.ty * 0.5}px`,
+                  '--tx2': `${s.tx}px`,
+                  '--ty2': `${s.ty}px`,
+                  animationDelay: s.delay,
+                } as React.CSSProperties}
+              >
+                <Image
+                  src="/assets/effects/effect-star.png"
+                  alt=""
+                  width={s.size}
+                  height={s.size}
+                />
+              </div>
+            ))}
+            <svg
+              width={star <= clampedStars ? 48 : 36}
+              height={star <= clampedStars ? 48 : 36}
+              viewBox="0 0 24 24"
+              fill={star <= clampedStars ? '#FFD43B' : 'rgba(255,255,255,0.12)'}
+              style={{
+                filter: star <= clampedStars ? 'drop-shadow(0 0 8px rgba(255,212,59,0.6))' : 'none',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
           </div>
-        );
-      })}
+        ))}
+      </div>
+
+      {/* ロケット装飾（standard / vivid） */}
+      {intensity !== 'subtle' && (
+        <div className="animate-rocket-fly fixed left-1/2 -translate-x-1/2 bottom-0 z-20 pointer-events-none">
+          <Image src="/assets/rocket.png" alt="" width={60} height={60} />
+        </div>
+      )}
+
+      {/* もどるボタン（自動遷移なし） */}
+      <button
+        onClick={onBack}
+        className="btn-comet px-14 py-5 text-lg rounded-2xl tap-interactive active:translate-y-[2px] active:shadow-sm transition-all duration-150 animate-fade-in-up"
+        style={{ animationDelay: '500ms' }}
+      >
+        もどる
+      </button>
     </div>
   );
 }

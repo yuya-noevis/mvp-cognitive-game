@@ -7,7 +7,20 @@ import { soundManager } from './sound-manager';
 import { vibrationManager } from './vibration-manager';
 import { StreakTracker } from './streak-tracker';
 
-export function useFeedback(settings: FeedbackSettings) {
+export interface FeedbackCallbacks {
+  /**
+   * 2連続不正解時にゲームへヒント表示を要求するコールバック。
+   * ゲーム側で実装して渡す（任意）。
+   */
+  onShowHint?: () => void;
+  /**
+   * 3連続不正解時にゲームへデモ再生を要求するコールバック。
+   * ゲーム側で実装して渡す（任意）。
+   */
+  onShowDemo?: () => void;
+}
+
+export function useFeedback(settings: FeedbackSettings, callbacks?: FeedbackCallbacks) {
   const [currentEffect, setCurrentEffect] = useState<FeedbackEffectType>(null);
   const streakTracker = useRef(new StreakTracker());
 
@@ -32,7 +45,7 @@ export function useFeedback(settings: FeedbackSettings) {
       }
     }
 
-    // 視覚エフェクト
+    // 視覚エフェクト（ティア・感覚過敏設定に応じた強度はVisualFeedback側で処理）
     if (result.isStreak5) {
       setCurrentEffect('streak-5');
     } else if (result.isStreak3) {
@@ -57,10 +70,21 @@ export function useFeedback(settings: FeedbackSettings) {
     // 視覚: 画面揺れ
     setCurrentEffect('incorrect');
 
+    // 2連続不正解: ヒント表示コールバック
+    if (result.shouldShowHint && callbacks?.onShowHint) {
+      callbacks.onShowHint();
+    }
+
+    // 3連続不正解: デモ再生コールバック
+    if (result.shouldShowDemo && callbacks?.onShowDemo) {
+      callbacks.onShowDemo();
+    }
+
     return result;
-  }, [settings]);
+  }, [settings, callbacks]);
 
   const triggerNearMiss = useCallback(() => {
+    // 惜しい判定: 連続正解ブーストを失わない
     streakTracker.current.recordNearMiss();
     setCurrentEffect('near-miss');
   }, []);

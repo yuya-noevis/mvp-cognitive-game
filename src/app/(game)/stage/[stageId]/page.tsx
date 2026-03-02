@@ -9,6 +9,8 @@ import { StageBreak } from '@/components/stage/StageBreak';
 import { StageCelebration } from '@/components/stage/StageCelebration';
 import { PlayIcon } from '@/components/icons';
 import { useChildProfile } from '@/hooks/useChildProfile';
+import { useInstructionLevel } from '@/features/instruction';
+import { UnifiedFeedback } from '@/components/feedback/UnifiedFeedback';
 
 import { GAME_COMPONENTS } from '@/games/game-components';
 
@@ -17,6 +19,7 @@ export default function StagePage() {
   const router = useRouter();
   const stageNumber = parseInt(params.stageId as string, 10) || 1;
   const { child, loading: childLoading } = useChildProfile();
+  const { instructionLevel } = useInstructionLevel();
 
   const ageGroup: AgeGroup = child?.ageGroup ?? '6-9';
 
@@ -109,28 +112,30 @@ export default function StagePage() {
     }
 
     return (
-      <div className="flex min-h-screen flex-col bg-space">
-        {/* Stage visual schedule bar */}
-        <div style={{
-          background: 'rgba(42, 42, 90, 0.6)',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-        }}>
-          <VisualSchedule
-            games={stage.stageState.games}
-            currentGameIndex={stage.stageState.currentGameIndex}
-          />
-        </div>
+      <UnifiedFeedback instructionLevel={instructionLevel}>
+        <div className="flex min-h-screen flex-col bg-space">
+          {/* Stage visual schedule bar */}
+          <div style={{
+            background: 'rgba(42, 42, 90, 0.6)',
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            <VisualSchedule
+              games={stage.stageState.games}
+              currentGameIndex={stage.stageState.currentGameIndex}
+            />
+          </div>
 
-        {/* Current game */}
-        <div className="flex-1">
-          <GameComponent
-            ageGroup={ageGroup}
-            stageMode={true}
-            maxTrials={stage.currentGame.trialCount}
-            onStageComplete={handleGameComplete}
-          />
+          {/* Current game */}
+          <div className="flex-1">
+            <GameComponent
+              ageGroup={ageGroup}
+              stageMode={true}
+              maxTrials={stage.currentGame.trialCount}
+              onStageComplete={handleGameComplete}
+            />
+          </div>
         </div>
-      </div>
+      </UnifiedFeedback>
     );
   }
 
