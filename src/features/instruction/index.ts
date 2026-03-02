@@ -8,6 +8,7 @@ export {
   useInstructionLevel,
   saveInstructionLevel,
   setInstructionLevelDevOverride,
+  resolveInstructionLevel,
 } from './use-instruction-level';
 export {
   GAME_INSTRUCTIONS,
@@ -16,3 +17,15 @@ export {
 } from './game-instructions';
 export { default as GameInstruction } from './GameInstruction';
 export { default as DemoAnimation } from './DemoAnimation';
+export {
+  adjustInstructionLevel,
+  type InstructionAdjustmentInput,
+  type InstructionAdjustmentResult,
+} from './instruction-adjuster';
+export {
+  appendInstructionLog,
+  loadInstructionLogs,
+  getRecentLogsForGame,
+  clearInstructionLogs,
+  type InstructionLog,
+} from './instruction-logger';

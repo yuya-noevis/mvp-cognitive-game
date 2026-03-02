@@ -40,7 +40,8 @@ export default function IntegratedGamePage() {
   const integratedId = params.integratedId as string;
   const { child, loading } = useChildProfile();
   const { tier, loading: tierLoading } = useTier();
-  const { instructionLevel, loading: instrLoading } = useInstructionLevel();
+  // ティア連動: tier が確定してから指示レベルを解決する
+  const { instructionLevel, loading: instrLoading } = useInstructionLevel(tierLoading ? undefined : tier);
 
   const [phase, setPhase] = useState<PagePhase>('instruction');
   const [hasSeen, setHasSeen] = useState(false);
