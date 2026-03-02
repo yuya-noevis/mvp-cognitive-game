@@ -192,6 +192,25 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {/* Profile completion prompt */}
+        <section className="animate-fade-in-up">
+          <Link
+            href="/onboarding/legacy"
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left"
+            style={{ background: 'rgba(108, 60, 225, 0.08)', border: '1px solid rgba(108, 60, 225, 0.18)' }}
+          >
+            <span className="text-xl">📋</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold" style={{ color: '#B8B8D0' }}>プロフィールを充実させる</p>
+              <p className="text-xs mt-0.5" style={{ color: '#8888AA' }}>診断・特性情報を追加すると精度が上がります</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                 strokeLinecap="round" style={{ color: '#8888AA', flexShrink: 0 }}>
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </Link>
+        </section>
+
         {/* Disclaimer */}
         <p className="text-xs text-center px-4 py-3" style={{ color: '#8888AA' }}>
           {REPORT_DISCLAIMER}
