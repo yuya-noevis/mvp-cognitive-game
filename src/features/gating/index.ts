@@ -12,3 +12,12 @@ export {
   type GameAccessResult,
 } from './gate-checker';
 export { useTier, saveTier, setTierDevOverride } from './use-tier';
+export {
+  checkTierPromotion,
+  loadGameRecords,
+  saveGameRecord,
+  tryPromoteTier,
+  type StoredSessionResult,
+  type TierProgressionInput,
+  type TierPromotionResult,
+} from './tier-progression';
