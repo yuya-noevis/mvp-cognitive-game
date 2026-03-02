@@ -65,6 +65,9 @@ export default function IntegratedGamePage() {
   const [hasSeen, setHasSeen] = useState(false);
   const [limitReason, setLimitReason] = useState<string>('');
 
+  // Guard against double-initialization from useEffect re-firing
+  const sessionInitializedRef = useRef(false);
+
   // Session manager state
   const sessionManagerRef = useRef<SessionManager | null>(null);
   const [sessionProgress, setSessionProgress] = useState(0);
@@ -150,9 +153,10 @@ export default function IntegratedGamePage() {
     }
   }, [tier, hasSeen]);
 
-  // Initialize on mount (after loading)
+  // Initialize on mount (only once)
   useEffect(() => {
-    if (!loading && !tierLoading && !instrLoading) {
+    if (!loading && !tierLoading && !instrLoading && !sessionInitializedRef.current) {
+      sessionInitializedRef.current = true;
       initSession();
     }
   }, [loading, tierLoading, instrLoading, initSession]);
@@ -208,6 +212,7 @@ export default function IntegratedGamePage() {
 
   // Handlers for session complete screen
   const handleNextSession = useCallback(() => {
+    sessionInitializedRef.current = false;
     setGameKey(prev => prev + 1);
     initSession();
   }, [initSession]);

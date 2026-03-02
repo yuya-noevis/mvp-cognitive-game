@@ -1,6 +1,16 @@
 import type { IntegratedGameId } from '@/games/integrated/types';
 import type { MixedSessionPlan, SessionGameSlot } from './mixed-session';
 
+// Session state debug logging (development only)
+function debugSessionLog(event: string, state: Record<string, unknown>) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Session] ${event}`, {
+      ...state,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
 export interface MixedTrialResult {
   gameId: IntegratedGameId;
   gameIndex: number;
@@ -22,6 +32,15 @@ export class MixedSessionManager {
   constructor(plan: MixedSessionPlan) {
     this.plan = plan;
     this.startTime = Date.now();
+
+    const scoredTotal = plan.games.reduce((sum, g) => sum + g.trialCount, 0);
+    debugSessionLog('SESSION_START', {
+      gameCount: plan.games.length,
+      gameIds: plan.games.map(g => g.gameId),
+      warmupTrials: plan.config.warmupTrials,
+      scoredTotal,
+      totalTrials: plan.config.warmupTrials + scoredTotal,
+    });
   }
 
   getCurrentGame(): SessionGameSlot {
@@ -58,12 +77,21 @@ export class MixedSessionManager {
     nextGameId?: IntegratedGameId;
     progress: number;
   } {
+    const prevTotal = this.totalTrialsCompleted;
+
     // ウォームアップ処理
     if (this.isWarmup()) {
       this.totalTrialsCompleted++;
       if (this.totalTrialsCompleted >= this.plan.config.warmupTrials) {
         this.warmupCompleted = true;
         this.totalTrialsCompleted = 0;
+
+        debugSessionLog('WARMUP_COMPLETE', {
+          currentGameIndex: this.currentGameIndex,
+          currentTrialInGame: this.currentTrialInGame,
+          totalTrialsCompleted: this.totalTrialsCompleted,
+          currentGameId: this.getCurrentGameId(),
+        });
       }
       return {
         isGameSwitch: false,
@@ -85,8 +113,28 @@ export class MixedSessionManager {
     this.currentTrialInGame++;
     this.totalTrialsCompleted++;
 
+    // State reset detection
+    if (this.totalTrialsCompleted < prevTotal) {
+      debugSessionLog('⚠️ STATE_RESET_DETECTED', {
+        previousTotal: prevTotal,
+        currentTotal: this.totalTrialsCompleted,
+        currentGameIndex: this.currentGameIndex,
+        currentGameId: this.getCurrentGameId(),
+      });
+    }
+
     const scoredTotal = this.plan.games.reduce((sum, g) => sum + g.trialCount, 0);
     const progress = this.totalTrialsCompleted / scoredTotal;
+
+    debugSessionLog('TRIAL_COMPLETE', {
+      correct,
+      currentGameIndex: this.currentGameIndex,
+      currentTrialInGame: this.currentTrialInGame,
+      totalTrialsCompleted: this.totalTrialsCompleted,
+      totalTrialsInSession: scoredTotal,
+      currentGameId: this.getCurrentGameId(),
+      progress: Math.round(progress * 100) + '%',
+    });
 
     // 現在のゲームの試行が完了したか
     if (this.currentTrialInGame >= this.getCurrentGame().trialCount) {
@@ -95,6 +143,13 @@ export class MixedSessionManager {
 
       // 全ゲーム完了
       if (this.currentGameIndex >= this.plan.games.length) {
+        debugSessionLog('SESSION_COMPLETE', {
+          totalTrialsCompleted: this.totalTrialsCompleted,
+          totalCorrect: this.results.filter(r => r.correct).length,
+          totalAttempts: this.results.length,
+          durationMs: this.getSessionDurationMs(),
+        });
+
         return {
           isGameSwitch: false,
           isSessionComplete: true,
@@ -103,6 +158,14 @@ export class MixedSessionManager {
       }
 
       // 次のゲームに切替
+      debugSessionLog('GAME_SWITCH', {
+        fromGameIndex: this.currentGameIndex - 1,
+        toGameIndex: this.currentGameIndex,
+        nextGameId: this.getCurrentGameId(),
+        totalTrialsCompleted: this.totalTrialsCompleted,
+        progress: Math.round(progress * 100) + '%',
+      });
+
       return {
         isGameSwitch: true,
         isSessionComplete: false,

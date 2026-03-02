@@ -52,6 +52,8 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
   const [showRuleChange, setShowRuleChange] = useState(false);
   const previousRuleRef = useRef<RuleType>('color');
+  const ruleChangeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const maxTrials = maxTrialsProp ?? irokaeSwitchConfig.trial_count_range.max;
   const switchFreq = (session.difficulty.switch_frequency as number) || 8;
@@ -93,7 +95,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
       setPhase('rule_display');
 
       // Show rule change for 2 seconds
-      setTimeout(() => {
+      ruleChangeTimerRef.current = setTimeout(() => {
         setShowRuleChange(false);
         startStimulus(newRule);
       }, 2000);
@@ -150,7 +152,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('ready');
-    setTimeout(nextTrial, 600);
+    feedbackTimerRef.current = setTimeout(nextTrial, 600);
   }, [nextTrial]);
 
   useEffect(() => {
@@ -158,6 +160,14 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
       nextTrial();
     }
   }, [session.sessionId, phase, session.totalTrials, nextTrial]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (ruleChangeTimerRef.current) clearTimeout(ruleChangeTimerRef.current);
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
+  }, []);
 
   // Rule indicator size based on cue salience
   const ruleIndicatorSize = cueSalience === 'high' ? 'text-2xl' : cueSalience === 'mid' ? 'text-lg' : 'text-sm';
@@ -188,7 +198,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
 
       {/* Current card */}
       {currentCard && phase === 'stimulus' && (
-        <div className={`w-32 h-32 rounded-2xl ${COLOR_BG[currentCard.color]} flex items-center justify-center mb-8 shadow-lg`}>
+        <div className={`w-32 h-32 rounded-2xl ${COLOR_BG[currentCard.color]} flex items-center justify-center mb-8 shadow-lg mx-auto`}>
           <span className="text-5xl text-white">
             {SHAPE_EMOJI[currentCard.shape]}
           </span>
@@ -196,7 +206,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
       )}
 
       {/* Sort bins */}
-      <div className="flex gap-6">
+      <div className="flex gap-6 justify-center">
         {bins.map((bin, index) => (
           <button
             key={index}

@@ -40,8 +40,10 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
   const [currentFace, setCurrentFace] = useState<'happy' | 'angry'>('happy');
   const [trialInBlock, setTrialInBlock] = useState(0);
   const [responded, setResponded] = useState(false);
+  const respondedRef = useRef(false);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
   const stimulusOnsetRef = useRef(0);
 
   const effectiveMaxTrials = stageModeTrials ?? kimochiStopConfig.trial_count_range.max;
@@ -80,6 +82,26 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, effectiveMaxTrials, trialInBlock, blockSwitchFreq, blockRule]);
 
+  const handleTimeout = useCallback((face: 'happy' | 'angry', rule: BlockRule) => {
+    setResponded(true);
+    respondedRef.current = true;
+    const response: TrialResponse = {
+      type: 'withhold',
+      value: { tapped: false, face },
+      timestamp_ms: nowMs(),
+    };
+    session.recordResponse(response);
+
+    const isGo = isGoTrial(face, rule);
+    const isCorrect = !isGo; // Withholding on No-Go is correct
+    const errorType = isGo ? 'omission' as const : null;
+    session.completeTrial(isCorrect, errorType);
+
+    setTrialInBlock(prev => prev + 1);
+    setFeedbackCorrect(isCorrect);
+    setPhase('feedback');
+  }, [session, isGoTrial]);
+
   const startStimulus = useCallback((rule: BlockRule) => {
     // 75% Go, 25% No-Go
     const isGo = Math.random() < 0.75;
@@ -89,6 +111,7 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
 
     setCurrentFace(face);
     setResponded(false);
+    respondedRef.current = false;
     setPhase('fixation');
 
     timerRef.current = setTimeout(() => {
@@ -101,18 +124,19 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
       );
       session.presentStimulus();
 
-      // Response window
+      // Response window (use ref to avoid stale closure)
       timerRef.current = setTimeout(() => {
-        if (!responded) {
+        if (!respondedRef.current) {
           handleTimeout(face, rule);
         }
       }, displayDuration);
     }, randomInt(500, 1000));
-  }, [session, displayDuration, isGoTrial, responded]);
+  }, [session, displayDuration, isGoTrial, handleTimeout]);
 
   const handleTap = useCallback(() => {
-    if (phase !== 'stimulus' || responded) return;
+    if (phase !== 'stimulus' || respondedRef.current) return;
     setResponded(true);
+    respondedRef.current = true;
     clearTimer();
 
     const response: TrialResponse = {
@@ -130,26 +154,7 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
     setTrialInBlock(prev => prev + 1);
     setFeedbackCorrect(isCorrect);
     setPhase('feedback');
-  }, [phase, responded, currentFace, blockRule, session, clearTimer, isGoTrial]);
-
-  const handleTimeout = useCallback((face: 'happy' | 'angry', rule: BlockRule) => {
-    setResponded(true);
-    const response: TrialResponse = {
-      type: 'withhold',
-      value: { tapped: false, face },
-      timestamp_ms: nowMs(),
-    };
-    session.recordResponse(response);
-
-    const isGo = isGoTrial(face, rule);
-    const isCorrect = !isGo; // Withholding on No-Go is correct
-    const errorType = isGo ? 'omission' as const : null;
-    session.completeTrial(isCorrect, errorType);
-
-    setTrialInBlock(prev => prev + 1);
-    setFeedbackCorrect(isCorrect);
-    setPhase('feedback');
-  }, [session, isGoTrial]);
+  }, [phase, currentFace, blockRule, session, clearTimer, isGoTrial]);
 
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);

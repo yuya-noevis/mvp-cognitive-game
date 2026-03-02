@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
@@ -47,6 +47,8 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
   const session = useGameSession({ gameConfig: kakurenboKatachiConfig, ageGroup });
 
   const [phase, setPhase] = useState<Phase>('ready');
+  const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [targetShape, setTargetShape] = useState<typeof TARGET_SHAPES[0] | null>(null);
   const [targetColor, setTargetColor] = useState('');
   const [items, setItems] = useState<ShapeItem[]>([]);
@@ -125,7 +127,7 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
     session.presentStimulus();
 
     // After preview, switch to search
-    setTimeout(() => setPhase('search'), 2000);
+    previewTimerRef.current = setTimeout(() => setPhase('search'), 2000);
   }, [session, effectiveMaxTrials, distractorCount, targetSize, colorSimilarity]);
 
   const handleItemTap = useCallback((item: ShapeItem) => {
@@ -148,7 +150,7 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('ready');
-    setTimeout(nextTrial, 600);
+    feedbackTimerRef.current = setTimeout(nextTrial, 600);
   }, [nextTrial]);
 
   useEffect(() => {
@@ -156,6 +158,14 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
       nextTrial();
     }
   }, [session.sessionId, phase, session.totalTrials, nextTrial]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
+  }, []);
 
   return (
     <GameShell gameName="かくれんぼカタチ" session={session}

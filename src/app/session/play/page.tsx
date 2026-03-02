@@ -73,6 +73,9 @@ export default function MixedSessionPlayPage() {
   const [phase, setPhase] = useState<PagePhase>('playing');
   const [limitReason, setLimitReason] = useState('');
 
+  // Guard against double-initialization from useEffect re-firing
+  const sessionInitializedRef = useRef(false);
+
   // Mixed session state
   const managerRef = useRef<MixedSessionManager | null>(null);
   const [sessionPlan, setSessionPlan] = useState<MixedSessionPlan | null>(null);
@@ -171,9 +174,10 @@ export default function MixedSessionPlayPage() {
     setPhase('playing');
   }, [tier, buildSessionPlan]);
 
-  // Initialize on mount
+  // Initialize on mount (only once)
   useEffect(() => {
-    if (!loading && !tierLoading && !instrLoading) {
+    if (!loading && !tierLoading && !instrLoading && !sessionInitializedRef.current) {
+      sessionInitializedRef.current = true;
       initSession();
     }
   }, [loading, tierLoading, instrLoading, initSession]);
@@ -264,6 +268,7 @@ export default function MixedSessionPlayPage() {
   }), [handleTrialComplete, ddaProfile, warmupAdjustment]);
 
   const handleNextSession = useCallback(() => {
+    sessionInitializedRef.current = false;
     setGameKey(prev => prev + 1);
     initSession();
   }, [initSession]);
