@@ -20,8 +20,6 @@ import { SessionProvider } from '@/features/session/SessionContext';
 import type { SessionContextValue } from '@/features/session/SessionContext';
 import { MixedSessionProgressBar } from '@/features/session/SessionProgressBar';
 import { WarmupStartBanner } from '@/features/session/SessionProgressBar';
-import { SessionComplete } from '@/features/session/SessionComplete';
-import { GameTransition } from '@/features/session/GameTransition';
 import { loadDisabilityType } from '@/features/dda/disability-profile-store';
 import { DDA_PROFILES } from '@/features/dda/disability-profile';
 import type { DDAProfile } from '@/features/dda/disability-profile';
@@ -31,7 +29,24 @@ import { MixedSessionManager } from '@/features/session/mixed-session-manager';
 import { selectGamesForSession, getRecentGames, saveRecentGames } from '@/features/session/session-engine';
 import { saveMixedSessionRecord } from '@/features/session/mixed-session-record';
 
+// Transition UI components (v3 Section 10)
+import { GameTransition } from '@/components/transitions/GameTransition';
+import { SessionEndWarning, useSessionEndWarningPolled } from '@/components/transitions/SessionEndWarning';
+import { SessionComplete, calcStarCount } from '@/components/transitions/SessionComplete';
+
 const SEEN_KEY_PREFIX = 'manas_instruction_seen_';
+
+// ゲームアイコンマップ（絵カード表示用）
+const GAME_ICON_MAP: Record<IntegratedGameId, string> = {
+  'hikari-rescue': '⚡',
+  'oboete-susumu': '🧠',
+  'rule-change': '🔄',
+  'kurukuru-puzzle': '🧩',
+  'tanken-meiro': '🗺️',
+  'kotoba-ehon': '📖',
+  'kimochi-friends': '😊',
+  'touch-adventure': '👆',
+};
 
 // Lazy load all game components
 const GAME_COMPONENTS: Record<GameId, React.ComponentType<{ ageGroup: AgeGroup; maxTrials?: number }>> = {
@@ -86,8 +101,8 @@ export default function MixedSessionPlayPage() {
   const [gameKey, setGameKey] = useState(0);
 
   // Transition state
-  const [transitionFrom, setTransitionFrom] = useState('');
-  const [transitionTo, setTransitionTo] = useState('');
+  const [transitionNextName, setTransitionNextName] = useState('');
+  const [transitionNextIcon, setTransitionNextIcon] = useState('🎮');
 
   // Instruction tracking for current game
   const [pendingInstruction, setPendingInstruction] = useState<IntegratedGameId | null>(null);
@@ -107,6 +122,15 @@ export default function MixedSessionPlayPage() {
     () => ({ triggerCorrect, triggerIncorrect, triggerNearMiss }),
     [triggerCorrect, triggerIncorrect, triggerNearMiss],
   );
+
+  // セッション終了警告（セッション残り1分前にトースト表示）
+  const dailyLimit = useMemo(() => getDailyLimitConfig(tier), [tier]);
+  const maxSessionMs = dailyLimit.maxTotalMinutes * 60 * 1000;
+  const getElapsedMs = useCallback(() => {
+    return managerRef.current?.getSessionDurationMs() ?? 0;
+  }, []);
+  const { showWarning: showEndWarning, remainingMinutes: endWarningMinutes } =
+    useSessionEndWarningPolled(getElapsedMs, maxSessionMs, 60000, 5000);
 
   // Build session plan
   const buildSessionPlan = useCallback((): MixedSessionPlan | null => {
@@ -137,8 +161,8 @@ export default function MixedSessionPlayPage() {
 
   // Initialize session
   const initSession = useCallback(() => {
-    const dailyLimit = getDailyLimitConfig(tier);
-    const check = dailyTracker.canStartSession(dailyLimit);
+    const dailyLimitConfig = getDailyLimitConfig(tier);
+    const check = dailyTracker.canStartSession(dailyLimitConfig);
     if (!check.allowed) {
       setLimitReason(check.reason ?? '');
       setPhase('daily-limit');
@@ -216,12 +240,11 @@ export default function MixedSessionPlayPage() {
       setTimeout(() => setShowStartBanner(false), 1300);
     }
 
-    // Game switch
+    // Game switch → show transition screen
     if (result.isGameSwitch && result.nextGameId) {
-      const prevConfig = INTEGRATED_GAME_MAP[manager.getPlan().games[manager.getCurrentGameIndex() - 1]?.gameId];
       const nextConfig = INTEGRATED_GAME_MAP[result.nextGameId];
-      setTransitionFrom(prevConfig?.name ?? '');
-      setTransitionTo(nextConfig?.name ?? '');
+      setTransitionNextName(nextConfig?.name ?? '');
+      setTransitionNextIcon(GAME_ICON_MAP[result.nextGameId] ?? '🎮');
       setPhase('transition');
       return;
     }
@@ -266,12 +289,6 @@ export default function MixedSessionPlayPage() {
     disabilityProfile: ddaProfile,
     warmupAdjustment,
   }), [handleTrialComplete, ddaProfile, warmupAdjustment]);
-
-  const handleNextSession = useCallback(() => {
-    sessionInitializedRef.current = false;
-    setGameKey(prev => prev + 1);
-    initSession();
-  }, [initSession]);
 
   const handleGoHome = useCallback(() => {
     router.push('/');
@@ -327,8 +344,9 @@ export default function MixedSessionPlayPage() {
     return (
       <AnimatePresence>
         <GameTransition
-          fromGameName={transitionFrom}
-          toGameName={transitionTo}
+          nextGameName={transitionNextName}
+          nextGameIcon={transitionNextIcon}
+          duration={3000}
           onComplete={handleTransitionComplete}
         />
       </AnimatePresence>
@@ -339,24 +357,16 @@ export default function MixedSessionPlayPage() {
   if (phase === 'session-complete') {
     const manager = managerRef.current;
     const stats = manager?.getScoredStats() ?? { totalCorrect: 0, totalAttempts: 0, accuracy: 0 };
-    const dailyLimit = getDailyLimitConfig(tier);
-    const canPlayCheck = dailyTracker.canStartSession(dailyLimit);
+    const gameCount = manager?.getPlan().games.length ?? 0;
+    const starCount = calcStarCount(stats.accuracy);
 
     return (
       <SessionComplete
-        scoredResults={manager?.getResults().map((r, i) => ({
-          trialIndex: i,
-          phase: 'scored' as const,
-          correct: r.correct,
-          responseTimeMs: r.responseTimeMs,
-          timestamp: r.timestamp,
-        })) ?? []}
-        streakStats={stats}
-        sessionDurationSec={manager?.getSessionDurationSec() ?? 0}
-        onNextSession={handleNextSession}
+        gameCount={gameCount}
+        starCount={starCount}
+        totalCorrect={stats.totalCorrect}
+        totalAttempts={stats.totalAttempts}
         onGoHome={handleGoHome}
-        dailyStats={dailyTracker.getTodayStats()}
-        canPlayMore={canPlayCheck.allowed}
       />
     );
   }
@@ -425,6 +435,12 @@ export default function MixedSessionPlayPage() {
           <AnimatePresence>
             {showStartBanner && <WarmupStartBanner />}
           </AnimatePresence>
+
+          {/* セッション終了前の予告トースト（v3 Section 10）*/}
+          <SessionEndWarning
+            visible={showEndWarning}
+            remainingMinutes={endWarningMinutes}
+          />
         </div>
       </FeedbackContext>
     </SessionProvider>

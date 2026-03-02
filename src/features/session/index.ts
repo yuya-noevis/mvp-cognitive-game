@@ -44,4 +44,4 @@ export {
   getRecentGames,
 } from './session-engine';
 
-export { GameTransition } from './GameTransition';
+export { GameTransition, type GameTransitionProps } from './GameTransition';
