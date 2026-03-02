@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { GAME_LIST, GAME_CONFIGS } from '@/games';
+import { ACTIVE_GAME_LIST, GAME_CONFIGS } from '@/games';
 import { COGNITIVE_DOMAINS } from '@/lib/constants';
 import { SpaceMap } from '@/components/map/SpaceMap';
 import { StarField } from '@/components/map/StarField';
@@ -153,7 +153,7 @@ export default function GameSelectPage() {
       {/* Game card grid */}
       <div className="px-4 py-6 relative z-10">
         <div className="grid grid-cols-3 gap-4">
-          {GAME_LIST.map((game, i) => {
+          {ACTIVE_GAME_LIST.map((game, i) => {
             const cfg = GAME_CONFIGS[game.id];
             const cardColor = CARD_COLORS[i % CARD_COLORS.length];
 

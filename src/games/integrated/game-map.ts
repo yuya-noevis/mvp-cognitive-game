@@ -10,6 +10,8 @@ export const INTEGRATED_GAME_MAP: Record<IntegratedGameId, IntegratedGameConfig>
     id: 'hikari-rescue',
     name: 'ひかりレスキュー',
     description: 'ちゅうい・よくせい',
+    icon: '⚡',
+    primaryDomains: ['attention', 'inhibition', 'processing_speed'],
     category: 'attention-inhibition',
     levels: [
       { min: 1, max: 3, sourceGameId: 'hikari-catch', label: 'Go only' },
@@ -22,6 +24,8 @@ export const INTEGRATED_GAME_MAP: Record<IntegratedGameId, IntegratedGameConfig>
     id: 'oboete-susumu',
     name: 'おぼえてすすむ',
     description: 'きおく・がくしゅう',
+    icon: '🧠',
+    primaryDomains: ['working_memory', 'memory'],
     category: 'memory-learning',
     levels: [
       { min: 1, max: 13, sourceGameId: 'oboete-narabete', label: '順方向 + DMS' },
@@ -32,6 +36,8 @@ export const INTEGRATED_GAME_MAP: Record<IntegratedGameId, IntegratedGameConfig>
     id: 'rule-change',
     name: 'ルールチェンジ',
     description: 'じゅうなんせい',
+    icon: '🔄',
+    primaryDomains: ['cognitive_flexibility'],
     category: 'flexibility-control',
     levels: [
       { min: 1, max: 25, sourceGameId: 'irokae-switch', label: 'DCCS全レベル' },
@@ -41,6 +47,8 @@ export const INTEGRATED_GAME_MAP: Record<IntegratedGameId, IntegratedGameConfig>
     id: 'kurukuru-puzzle',
     name: 'くるくるパズル',
     description: 'ちかく・すいろん',
+    icon: '🧩',
+    primaryDomains: ['visuospatial', 'reasoning', 'perceptual'],
     category: 'perception-spatial',
     levels: [
       { min: 1, max: 13, sourceGameId: 'katachi-sagashi', label: '形合わせ + 2D回転' },
@@ -51,6 +59,8 @@ export const INTEGRATED_GAME_MAP: Record<IntegratedGameId, IntegratedGameConfig>
     id: 'tanken-meiro',
     name: 'たんけんめいろ',
     description: 'けいかく・もんだいかいけつ',
+    icon: '🗺️',
+    primaryDomains: ['problem_solving', 'planning'],
     category: 'flexibility-control',
     levels: [
       { min: 1, max: 13, sourceGameId: 'meiro-tanken', label: '迷路探検' },
@@ -61,6 +71,8 @@ export const INTEGRATED_GAME_MAP: Record<IntegratedGameId, IntegratedGameConfig>
     id: 'kotoba-ehon',
     name: 'ことばとえほん',
     description: 'ことば',
+    icon: '📖',
+    primaryDomains: ['language'],
     category: 'social-language',
     levels: [
       { min: 1, max: 25, sourceGameId: 'kotoba-catch', label: '受容語彙' },
@@ -70,6 +82,8 @@ export const INTEGRATED_GAME_MAP: Record<IntegratedGameId, IntegratedGameConfig>
     id: 'kimochi-friends',
     name: 'きもちフレンズ',
     description: 'しゃかいにんち',
+    icon: '😊',
+    primaryDomains: ['social_cognition', 'emotion_regulation'],
     category: 'social-language',
     levels: [
       { min: 1, max: 18, sourceGameId: 'kimochi-yomitori', label: '表情認識' },
@@ -80,6 +94,8 @@ export const INTEGRATED_GAME_MAP: Record<IntegratedGameId, IntegratedGameConfig>
     id: 'touch-adventure',
     name: 'タッチアドベンチャー',
     description: 'びさいうんどう',
+    icon: '👆',
+    primaryDomains: ['motor_skills', 'processing_speed'],
     category: 'perception-spatial',
     levels: [
       { min: 1, max: 13, sourceGameId: 'touch-de-go', label: 'タップ・ドラッグ' },
@@ -108,3 +124,15 @@ export function resolveSourceGame(integratedId: IntegratedGameId, userLevel: num
 
 /** 表示用の統合ゲームリスト */
 export const INTEGRATED_GAME_LIST = Object.values(INTEGRATED_GAME_MAP);
+
+/**
+ * ソースゲームIDから統合ゲームIDを逆引きする
+ */
+export function findIntegratedGameForSource(sourceGameId: GameId): IntegratedGameId | null {
+  for (const config of INTEGRATED_GAME_LIST) {
+    if (config.levels.some(l => l.sourceGameId === sourceGameId)) {
+      return config.id;
+    }
+  }
+  return null;
+}

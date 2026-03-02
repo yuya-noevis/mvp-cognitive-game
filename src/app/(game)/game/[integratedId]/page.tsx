@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
-import type { GameId, AgeGroup } from '@/types';
+import type { AgeGroup } from '@/types';
 import { GAME_CONFIGS } from '@/games';
+import { GAME_COMPONENTS } from '@/games/game-components';
 import { INTEGRATED_GAME_MAP, resolveSourceGame } from '@/games/integrated';
 import type { IntegratedGameId } from '@/games/integrated';
 import { SearchIcon } from '@/components/icons';
@@ -31,25 +31,6 @@ const SEEN_KEY_PREFIX = 'manas_instruction_seen_';
 
 // Dev override for session trial count
 const DEV_SESSION_OVERRIDE_KEY = 'manas_session_trials_dev_override';
-
-// Lazy load all game components
-const GAME_COMPONENTS: Record<GameId, React.ComponentType<{ ageGroup: AgeGroup; maxTrials?: number }>> = {
-  'hikari-catch': dynamic(() => import('@/games/hikari-catch/HikariCatch')),
-  'matte-stop': dynamic(() => import('@/games/matte-stop/MatteStop')),
-  'oboete-narabete': dynamic(() => import('@/games/oboete-narabete/OboeteNarabete')),
-  'katachi-sagashi': dynamic(() => import('@/games/katachi-sagashi/KatachiSagashi')),
-  'irokae-switch': dynamic(() => import('@/games/irokae-switch/IrokaeSwitch')),
-  'hayawaza-touch': dynamic(() => import('@/games/hayawaza-touch/HayawazaTouch')),
-  'oboete-match': dynamic(() => import('@/games/oboete-match/OboeteMatch')),
-  'tsumitage-tower': dynamic(() => import('@/games/tsumitage-tower/TsumitageTower')),
-  'pattern-puzzle': dynamic(() => import('@/games/pattern-puzzle/PatternPuzzle')),
-  'meiro-tanken': dynamic(() => import('@/games/meiro-tanken/MeiroTanken')),
-  'kakurenbo-katachi': dynamic(() => import('@/games/kakurenbo-katachi/KakurenboKatachi')),
-  'kotoba-catch': dynamic(() => import('@/games/kotoba-catch/KotobaCatch')),
-  'kimochi-yomitori': dynamic(() => import('@/games/kimochi-yomitori/KimochiYomitori')),
-  'kimochi-stop': dynamic(() => import('@/games/kimochi-stop/KimochiStop')),
-  'touch-de-go': dynamic(() => import('@/games/touch-de-go/TouchDeGo')),
-};
 
 type PagePhase = 'daily-limit' | 'instruction' | 'playing' | 'session-complete';
 

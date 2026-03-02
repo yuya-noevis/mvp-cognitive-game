@@ -46,9 +46,12 @@ export const GAME_LIST = [
   { id: 'tsumitage-tower' as GameId, domain: 'planning' as CognitiveDomain, name: 'つみあげタワー', description: 'けいかく' },
   { id: 'pattern-puzzle' as GameId, domain: 'reasoning' as CognitiveDomain, name: 'パターンパズル', description: 'すいろん' },
   { id: 'meiro-tanken' as GameId, domain: 'problem_solving' as CognitiveDomain, name: 'めいろたんけん', description: 'もんだいかいけつ' },
-  { id: 'kakurenbo-katachi' as GameId, domain: 'perceptual' as CognitiveDomain, name: 'かくれんぼカタチ', description: 'みつける' },
+  { id: 'kakurenbo-katachi' as GameId, domain: 'perceptual' as CognitiveDomain, name: 'かくれんぼカタチ', description: 'みつける', isArchived: true },
   { id: 'kotoba-catch' as GameId, domain: 'language' as CognitiveDomain, name: 'ことばキャッチ', description: 'ことば' },
   { id: 'kimochi-yomitori' as GameId, domain: 'social_cognition' as CognitiveDomain, name: 'きもちよみとり', description: 'きもち' },
   { id: 'kimochi-stop' as GameId, domain: 'emotion_regulation' as CognitiveDomain, name: 'きもちストップ', description: 'こころ' },
   { id: 'touch-de-go' as GameId, domain: 'motor_skills' as CognitiveDomain, name: 'タッチでGO!', description: 'うんどう' },
 ];
+
+/** アクティブなゲームのみ（アーカイブ済みを除外） */
+export const ACTIVE_GAME_LIST = GAME_LIST.filter(g => !g.isArchived);

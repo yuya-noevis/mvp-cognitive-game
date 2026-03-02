@@ -164,7 +164,7 @@ export default function DashboardPage() {
                         {ds.sessionCount7d === 0 ? 'まだプレイなし' : `スコア ${ds.score}`}
                       </p>
                     </div>
-                    <Link href={`/play/${gameId}`}>
+                    <Link href={`/game/${gameId}`}>
                       <CosmicButton variant="ghost" size="sm">
                         あそぶ
                       </CosmicButton>
@@ -410,7 +410,7 @@ function DomainDetailView({
         )}
 
         {/* Play button */}
-        <Link href={`/play/${gameId}`} className="block animate-fade-in-up">
+        <Link href={`/game/${gameId}`} className="block animate-fade-in-up">
           <CosmicButton variant="primary" size="lg" className="w-full">
             <PlayIcon size={20} style={{ color: 'white' }} />
             このゲームであそぶ

@@ -1,4 +1,5 @@
 import type { AgeGroup, CognitiveDomain, GameId, StageConfig } from '@/types';
+import type { IntegratedGameId } from '@/games/integrated/types';
 import {
   STAGE_DURATION_BY_AGE,
   GAMES_PER_STAGE_BY_AGE,
@@ -60,11 +61,30 @@ export const DOMAIN_TO_GAME: Record<CognitiveDomain, GameId> = {
   planning: 'tsumitage-tower',
   reasoning: 'pattern-puzzle',
   problem_solving: 'meiro-tanken',
-  perceptual: 'kakurenbo-katachi',
+  perceptual: 'katachi-sagashi',
   language: 'kotoba-catch',
   social_cognition: 'kimochi-yomitori',
   emotion_regulation: 'kimochi-stop',
   motor_skills: 'touch-de-go',
+};
+
+/** ドメインに対応する統合ゲームID（UI・ダッシュボード用） */
+export const DOMAIN_TO_INTEGRATED_GAME: Record<CognitiveDomain, IntegratedGameId> = {
+  attention: 'hikari-rescue',
+  inhibition: 'hikari-rescue',
+  working_memory: 'oboete-susumu',
+  visuospatial: 'kurukuru-puzzle',
+  cognitive_flexibility: 'rule-change',
+  processing_speed: 'hikari-rescue',
+  memory: 'oboete-susumu',
+  planning: 'tanken-meiro',
+  reasoning: 'kurukuru-puzzle',
+  problem_solving: 'tanken-meiro',
+  perceptual: 'kurukuru-puzzle',
+  language: 'kotoba-ehon',
+  social_cognition: 'kimochi-friends',
+  emotion_regulation: 'kimochi-friends',
+  motor_skills: 'touch-adventure',
 };
 
 /**

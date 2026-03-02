@@ -1,4 +1,4 @@
-import type { GameId } from '@/types';
+import type { CognitiveDomain, GameId } from '@/types';
 
 /** 8統合ゲームのID */
 export type IntegratedGameId =
@@ -32,6 +32,8 @@ export interface IntegratedGameConfig {
   id: IntegratedGameId;
   name: string;
   description: string;
+  icon: string;
+  primaryDomains: CognitiveDomain[];
   category: CognitiveCategory;
   levels: IntegratedLevel[];
 }

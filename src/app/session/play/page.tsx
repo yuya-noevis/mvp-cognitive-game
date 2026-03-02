@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
-import type { GameId, AgeGroup } from '@/types';
+import type { AgeGroup } from '@/types';
 import { INTEGRATED_GAME_MAP, resolveSourceGame } from '@/games/integrated';
 import type { IntegratedGameId } from '@/games/integrated';
+import { GAME_COMPONENTS } from '@/games/game-components';
 import { useChildProfile } from '@/hooks/useChildProfile';
 import { useTier, checkGameAccess } from '@/features/gating';
 import { useInstructionLevel, GameInstruction } from '@/features/instruction';
@@ -35,37 +35,6 @@ import { SessionEndWarning, useSessionEndWarningPolled } from '@/components/tran
 import { SessionComplete, calcStarCount } from '@/components/transitions/SessionComplete';
 
 const SEEN_KEY_PREFIX = 'manas_instruction_seen_';
-
-// ゲームアイコンマップ（絵カード表示用）
-const GAME_ICON_MAP: Record<IntegratedGameId, string> = {
-  'hikari-rescue': '⚡',
-  'oboete-susumu': '🧠',
-  'rule-change': '🔄',
-  'kurukuru-puzzle': '🧩',
-  'tanken-meiro': '🗺️',
-  'kotoba-ehon': '📖',
-  'kimochi-friends': '😊',
-  'touch-adventure': '👆',
-};
-
-// Lazy load all game components
-const GAME_COMPONENTS: Record<GameId, React.ComponentType<{ ageGroup: AgeGroup; maxTrials?: number }>> = {
-  'hikari-catch': dynamic(() => import('@/games/hikari-catch/HikariCatch')),
-  'matte-stop': dynamic(() => import('@/games/matte-stop/MatteStop')),
-  'oboete-narabete': dynamic(() => import('@/games/oboete-narabete/OboeteNarabete')),
-  'katachi-sagashi': dynamic(() => import('@/games/katachi-sagashi/KatachiSagashi')),
-  'irokae-switch': dynamic(() => import('@/games/irokae-switch/IrokaeSwitch')),
-  'hayawaza-touch': dynamic(() => import('@/games/hayawaza-touch/HayawazaTouch')),
-  'oboete-match': dynamic(() => import('@/games/oboete-match/OboeteMatch')),
-  'tsumitage-tower': dynamic(() => import('@/games/tsumitage-tower/TsumitageTower')),
-  'pattern-puzzle': dynamic(() => import('@/games/pattern-puzzle/PatternPuzzle')),
-  'meiro-tanken': dynamic(() => import('@/games/meiro-tanken/MeiroTanken')),
-  'kakurenbo-katachi': dynamic(() => import('@/games/kakurenbo-katachi/KakurenboKatachi')),
-  'kotoba-catch': dynamic(() => import('@/games/kotoba-catch/KotobaCatch')),
-  'kimochi-yomitori': dynamic(() => import('@/games/kimochi-yomitori/KimochiYomitori')),
-  'kimochi-stop': dynamic(() => import('@/games/kimochi-stop/KimochiStop')),
-  'touch-de-go': dynamic(() => import('@/games/touch-de-go/TouchDeGo')),
-};
 
 type PagePhase = 'daily-limit' | 'instruction' | 'playing' | 'transition' | 'session-complete';
 
@@ -241,7 +210,7 @@ export default function MixedSessionPlayPage() {
     if (result.isGameSwitch && result.nextGameId) {
       const nextConfig = INTEGRATED_GAME_MAP[result.nextGameId];
       setTransitionNextName(nextConfig?.name ?? '');
-      setTransitionNextIcon(GAME_ICON_MAP[result.nextGameId] ?? '🎮');
+      setTransitionNextIcon(INTEGRATED_GAME_MAP[result.nextGameId]?.icon ?? '🎮');
       setPhase('transition');
       return;
     }

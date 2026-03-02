@@ -31,7 +31,6 @@ const GAME_BUILDING_MAP: Record<string, string> = {
   'tsumitage-tower': 'hirameki',
   'meiro-tanken': 'hirameki',
   'katachi-sagashi': 'kankaku',
-  'kakurenbo-katachi': 'kankaku',
   'hayawaza-touch': 'kankaku',
   'touch-de-go': 'kankaku',
   'kotoba-catch': 'kotoba',

@@ -81,23 +81,23 @@ export const DOMAIN_DISPLAY_NAMES: Record<string, string> = {
   motor_skills: '運動スキル',
 };
 
-/** Domain to game ID mapping */
+/** Domain to integrated game ID mapping (UI・ダッシュボード用) */
 export const DOMAIN_GAME_MAP: Record<string, string> = {
-  attention: 'hikari-catch',
-  inhibition: 'matte-stop',
-  working_memory: 'oboete-narabete',
-  visuospatial: 'katachi-sagashi',
-  cognitive_flexibility: 'irokae-switch',
-  processing_speed: 'hayawaza-touch',
-  memory: 'oboete-match',
-  planning: 'tsumitage-tower',
-  reasoning: 'pattern-puzzle',
-  problem_solving: 'meiro-tanken',
-  perceptual: 'kakurenbo-katachi',
-  language: 'kotoba-catch',
-  social_cognition: 'kimochi-yomitori',
-  emotion_regulation: 'kimochi-stop',
-  motor_skills: 'touch-de-go',
+  attention: 'hikari-rescue',
+  inhibition: 'hikari-rescue',
+  working_memory: 'oboete-susumu',
+  visuospatial: 'kurukuru-puzzle',
+  cognitive_flexibility: 'rule-change',
+  processing_speed: 'hikari-rescue',
+  memory: 'oboete-susumu',
+  planning: 'tanken-meiro',
+  reasoning: 'kurukuru-puzzle',
+  problem_solving: 'tanken-meiro',
+  perceptual: 'kurukuru-puzzle',
+  language: 'kotoba-ehon',
+  social_cognition: 'kimochi-friends',
+  emotion_regulation: 'kimochi-friends',
+  motor_skills: 'touch-adventure',
 };
 
 // ============================================
