@@ -48,13 +48,13 @@ export function setTierDevOverride(tier: Tier | null) {
   } catch { /* ignore */ }
 }
 
-/** 現在のティアを取得するhook。デフォルトは Tier 3（全解放） */
+/** 現在のティアを取得するhook。デフォルトは Tier 1（初回ユーザー向けの保守的な設定） */
 export function useTier(): {
   tier: Tier;
   loading: boolean;
   setDevTier: (tier: Tier) => void;
 } {
-  const [tier, setTier] = useState<Tier>(3);
+  const [tier, setTier] = useState<Tier>(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -248,21 +248,46 @@ export default function IntegratedGamePage() {
     );
   }
 
-  // Tier access denied
+  // ティアアクセス拒否 — ロック画面
   if (access && !access.accessible) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-8 animate-fade-in bg-space">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-             style={{ background: 'rgba(255, 212, 59, 0.15)' }}>
-          <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ color: '#FFD43B' }}>
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+          style={{ background: 'rgba(255, 212, 59, 0.15)' }}
+        >
+          <svg
+            width={32}
+            height={32}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ color: '#FFD43B' }}
+          >
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </div>
-        <p className="text-lg font-medium text-center" style={{ color: '#B8B8D0' }}>
-          {access.lockedReason ?? 'このゲームはまだ遊べないよ'}
+        <p className="text-lg font-medium text-center mb-2" style={{ color: '#B8B8D0' }}>
+          このゲームは まだ あそべないよ
         </p>
+        <p className="text-sm text-center mb-8" style={{ color: '#8888AA' }}>
+          {access.lockedReason ?? 'もうすこし がんばると あそべるよ！'}
+        </p>
+        <button
+          onClick={() => router.push('/select')}
+          className="px-8 py-4 rounded-2xl text-base font-bold transition-transform active:scale-95"
+          style={{
+            background: 'rgba(139, 92, 246, 0.15)',
+            border: '1.5px solid rgba(139, 92, 246, 0.4)',
+            color: '#8B5CF6',
+          }}
+        >
+          ゲームえらびに もどる
+        </button>
       </div>
     );
   }
