@@ -8,6 +8,7 @@ import { StarField } from '@/components/map/StarField';
 import { CosmicButton } from '@/components/ui/CosmicButton';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase/client';
 import { getLocalChildProfile, getLocalChildSettings, setLocalChildProfile, setLocalChildSettings } from '@/lib/local-profile';
+import { SensorySettingsSection } from '@/features/sensory/SensorySettingsSection';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<ChildSettings>(DEFAULT_CHILD_SETTINGS);
@@ -318,6 +319,11 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+
+        {/* Sensory settings */}
+        <div className="animate-fade-in-up">
+          <SensorySettingsSection />
+        </div>
 
         {/* Data management */}
         <section className="p-5 rounded-2xl animate-fade-in-up"

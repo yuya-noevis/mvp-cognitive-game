@@ -14,7 +14,6 @@ import { useTier, checkGameAccess } from '@/features/gating';
 import { useInstructionLevel, GameInstruction } from '@/features/instruction';
 import { FeedbackContext } from '@/features/feedback/FeedbackContext';
 import { useFeedback } from '@/features/feedback/use-feedback';
-import { getFeedbackSettingsForLevel } from '@/features/feedback/feedback-config';
 import { VisualFeedback } from '@/features/feedback/VisualFeedback';
 import { SessionManager } from '@/features/session/session-manager';
 import { dailyTracker } from '@/features/session/daily-tracker';
@@ -26,6 +25,7 @@ import { SessionComplete } from '@/features/session/SessionComplete';
 import { loadDisabilityType } from '@/features/dda/disability-profile-store';
 import { DDA_PROFILES } from '@/features/dda/disability-profile';
 import type { DDAProfile } from '@/features/dda/disability-profile';
+import { useSensoryFeedbackSettings } from '@/features/sensory/useSensoryFeedbackSettings';
 
 const SEEN_KEY_PREFIX = 'manas_instruction_seen_';
 
@@ -81,11 +81,8 @@ export default function IntegratedGamePage() {
   const [ddaProfile, setDdaProfile] = useState<DDAProfile | undefined>(undefined);
   const [warmupAdjustment, setWarmupAdjustment] = useState<number | undefined>(undefined);
 
-  // Feedback settings (unconditional for hooks rules)
-  const feedbackSettings = useMemo(
-    () => getFeedbackSettingsForLevel(instructionLevel),
-    [instructionLevel],
-  );
+  // Feedback settings: instructionLevel × sensory settings
+  const feedbackSettings = useSensoryFeedbackSettings(instructionLevel);
   const {
     triggerCorrect,
     triggerIncorrect,

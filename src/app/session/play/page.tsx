@@ -12,8 +12,8 @@ import { useTier, checkGameAccess } from '@/features/gating';
 import { useInstructionLevel, GameInstruction } from '@/features/instruction';
 import { FeedbackContext } from '@/features/feedback/FeedbackContext';
 import { useFeedback } from '@/features/feedback/use-feedback';
-import { getFeedbackSettingsForLevel } from '@/features/feedback/feedback-config';
 import { VisualFeedback } from '@/features/feedback/VisualFeedback';
+import { useSensoryFeedbackSettings } from '@/features/sensory/useSensoryFeedbackSettings';
 import { dailyTracker } from '@/features/session/daily-tracker';
 import { getDailyLimitConfig } from '@/features/session/session-config';
 import { SessionProvider } from '@/features/session/SessionContext';
@@ -96,11 +96,8 @@ export default function MixedSessionPlayPage() {
   const [ddaProfile, setDdaProfile] = useState<DDAProfile | undefined>(undefined);
   const [warmupAdjustment, setWarmupAdjustment] = useState<number | undefined>(undefined);
 
-  // Feedback
-  const feedbackSettings = useMemo(
-    () => getFeedbackSettingsForLevel(instructionLevel),
-    [instructionLevel],
-  );
+  // Feedback settings: instructionLevel × sensory settings
+  const feedbackSettings = useSensoryFeedbackSettings(instructionLevel);
   const { triggerCorrect, triggerIncorrect, triggerNearMiss, clearEffect, currentEffect } =
     useFeedback(feedbackSettings);
   const feedbackCtx = useMemo(

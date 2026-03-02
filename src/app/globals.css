@@ -143,6 +143,30 @@
   --color-primary-dark: #7B4FD0;
 }
 
+/* === Sensory Settings: Animation speed control === */
+/*
+ * --animation-duration-multiplier は SensorySettingsContext が JS で設定する。
+ *   normal: 1, slow: 2, none: 0
+ * data-animation="none" のとき全アニメーションを停止する（ハードウェア加速も考慮）
+ */
+:root {
+  --animation-duration-multiplier: 1;
+}
+
+[data-animation="slow"] {
+  --duration-fast: calc(150ms * 2);
+  --duration-normal: calc(300ms * 2);
+  --duration-slow: calc(500ms * 2);
+}
+
+[data-animation="none"] *,
+[data-animation="none"] *::before,
+[data-animation="none"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
 /* === Safe animation - respects user preferences === */
 @media (prefers-reduced-motion: reduce) {
   *,
