@@ -125,8 +125,8 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('iti');
-    setTimeout(nextTrial, randomInt(800, 1200));
-  }, [nextTrial]);
+    setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   // Auto-start
   useEffect(() => {

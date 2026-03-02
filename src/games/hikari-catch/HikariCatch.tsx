@@ -75,13 +75,13 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
     setPhase('feedback');
   }, [phase, session]);
 
-  // After feedback, go to next trial
+  // After feedback, go to next trial (ITI: Inter-Trial Interval)
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('ready');
-    // Small delay before next trial
-    setTimeout(nextTrial, 500);
-  }, [nextTrial]);
+    // ITI: 障害種別に応じた試行間インターバル
+    setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   // Auto-start first trial when session begins
   useEffect(() => {

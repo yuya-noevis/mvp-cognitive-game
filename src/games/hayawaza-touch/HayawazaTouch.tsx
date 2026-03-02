@@ -136,8 +136,8 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
     setPhase('iti');
-    setTimeout(nextTrial, randomInt(500, 800));
-  }, [nextTrial]);
+    setTimeout(nextTrial, session.getITIMs());
+  }, [nextTrial, session]);
 
   useEffect(() => {
     if (session.sessionId && phase === 'ready' && session.totalTrials === 0) {

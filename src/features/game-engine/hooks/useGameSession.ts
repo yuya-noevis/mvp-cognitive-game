@@ -29,6 +29,7 @@ import {
 import type { BiometricInput } from '@/features/camera/types';
 import { useSessionContext } from '@/features/session/SessionContext';
 import { useChildProfile } from '@/hooks/useChildProfile';
+import { getITI } from '@/features/dda/iti-config';
 
 
 export interface UseGameSessionOptions {
@@ -62,6 +63,8 @@ export interface GameSessionControls {
   endBreak: () => void;
   endSession: (reason: SessionEndReason) => void;
   applyWarmupAdjustment: (adjustment: number) => void;
+  /** 障害種別に基づくITI (ms) を返す */
+  getITIMs: () => number;
 }
 
 interface TrialRecord {
@@ -480,6 +483,10 @@ export function useGameSession({
     difficultyRef.current = newDiff;
   }, []);
 
+  const getITIMs = useCallback((): number => {
+    return getITI(resolvedProfile?.disabilityType);
+  }, [resolvedProfile?.disabilityType]);
+
   const endSession = useCallback((reason: SessionEndReason) => {
     // Guard against double-calling endSession
     if (sessionEndedRef.current) {
@@ -572,5 +579,6 @@ export function useGameSession({
     endBreak,
     endSession,
     applyWarmupAdjustment,
+    getITIMs,
   };
 }
