@@ -13,6 +13,10 @@ import type { Tier } from '@/features/gating';
 import type { IntegratedGameId } from '@/games/integrated/types';
 import { INTEGRATED_GAME_MAP } from '@/games/integrated';
 import { loadMixedSessionRecords, type MixedSessionRecord } from '@/features/session/mixed-session-record';
+import { loadDailyStreak } from '@/features/feedback/daily-streak';
+import type { DailyStreak } from '@/features/feedback/daily-streak';
+import { PlantGrowth } from '@/components/streak/PlantGrowth';
+import { DailyStreakBadge } from '@/components/feedback/DailyStreakBadge';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -171,6 +175,12 @@ export default function Home() {
     setRecentRecords(loadMixedSessionRecords().slice(0, 3));
   }, []);
 
+  // Streak data
+  const [streak, setStreak] = useState<DailyStreak | null>(null);
+  useEffect(() => {
+    try { setStreak(loadDailyStreak()); } catch { /* SSR guard */ }
+  }, []);
+
   // Redirect to login if no profile found (demo mode guard)
   useEffect(() => {
     if (!loading && !child) {
@@ -283,6 +293,14 @@ export default function Home() {
             あそぶ
           </motion.button>
         </div>
+
+        {/* ---- Streak display ---- */}
+        {streak && streak.currentDays > 0 && (
+          <div className="flex flex-shrink-0 justify-center px-5 pt-3 gap-3 flex-wrap">
+            <PlantGrowth level={streak.growthLevel} streakDays={streak.currentDays} showXpMultiplier compact />
+            <DailyStreakBadge streak={streak} />
+          </div>
+        )}
 
         {/* ---- Recent records ---- */}
         {recentRecords.length > 0 && (

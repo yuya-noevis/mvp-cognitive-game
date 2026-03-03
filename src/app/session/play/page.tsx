@@ -35,10 +35,13 @@ import type { SessionType } from '@/features/session/unit-tracker';
 import { GameTransition } from '@/components/transitions/GameTransition';
 import { SessionEndWarning, useSessionEndWarningPolled } from '@/components/transitions/SessionEndWarning';
 import { SessionComplete, calcStarCount } from '@/components/transitions/SessionComplete';
+import { TreasureChest } from '@/components/rewards/TreasureChest';
+import { useRewards } from '@/features/rewards/useRewards';
+import { loadDailyStreak } from '@/features/feedback/daily-streak';
 
 const SEEN_KEY_PREFIX = 'manas_instruction_seen_';
 
-type PagePhase = 'daily-limit' | 'instruction' | 'playing' | 'transition' | 'session-complete';
+type PagePhase = 'daily-limit' | 'instruction' | 'playing' | 'transition' | 'session-complete' | 'treasure-chest';
 
 function resolveGameComponent(integratedId: IntegratedGameId, userTier: number) {
   const config = INTEGRATED_GAME_MAP[integratedId];
@@ -84,6 +87,12 @@ export default function MixedSessionPlayPage() {
 
   // Unit / session type
   const [sessionType, setSessionType] = useState<SessionType>('normal');
+
+  // Rewards (treasure chest)
+  const [growthLevel] = useState(() => {
+    try { return loadDailyStreak().growthLevel; } catch { return 1 as const; }
+  });
+  const { chests, selectedReward, isPredictableMode, selectChest, confirmReward } = useRewards({ growthLevel });
 
   // Feedback settings: instructionLevel × sensory settings
   const feedbackSettings = useSensoryFeedbackSettings(instructionLevel);
@@ -289,6 +298,10 @@ export default function MixedSessionPlayPage() {
     router.push('/');
   }, [router]);
 
+  const handleRewardPhase = useCallback(() => {
+    setPhase('treasure-chest');
+  }, []);
+
   const ageGroup: AgeGroup = child?.ageGroup ?? '6-9';
 
   // Loading
@@ -361,8 +374,27 @@ export default function MixedSessionPlayPage() {
         starCount={starCount}
         totalCorrect={stats.totalCorrect}
         totalAttempts={stats.totalAttempts}
-        onGoHome={handleGoHome}
+        onGoHome={handleRewardPhase}
+        ctaLabel="ごほうびをもらう"
       />
+    );
+  }
+
+  // Treasure chest reward
+  if (phase === 'treasure-chest') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-space">
+        <TreasureChest
+          chests={chests}
+          selectedReward={selectedReward}
+          onSelectChest={selectChest}
+          onConfirmReward={() => {
+            confirmReward();
+            handleGoHome();
+          }}
+          isPredictableMode={isPredictableMode}
+        />
+      </div>
     );
   }
 

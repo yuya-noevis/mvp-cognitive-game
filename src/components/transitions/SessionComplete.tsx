@@ -1,7 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { updateDailyStreak } from '@/features/feedback/daily-streak';
+import type { DailyStreak } from '@/features/feedback/daily-streak';
+import { DailyStreakBadge } from '@/components/feedback/DailyStreakBadge';
 
 export interface SessionCompleteProps {
   /** 今日プレイしたゲーム数 */
@@ -14,6 +17,8 @@ export interface SessionCompleteProps {
   totalAttempts: number;
   /** ホーム画面へ戻るボタンのコールバック（自動遷移なし） */
   onGoHome: () => void;
+  /** ボタンラベルのカスタマイズ */
+  ctaLabel?: string;
 }
 
 function StarDisplay({ count }: { count: number }) {
@@ -65,8 +70,17 @@ export function SessionComplete({
   totalCorrect,
   totalAttempts,
   onGoHome,
+  ctaLabel = 'またあした',
 }: SessionCompleteProps) {
   const message = getEncouragementMessage(starCount);
+
+  // ストリーク更新（セッション完了時に1回だけ実行）
+  const [streakState] = useState(() => {
+    try {
+      const result = updateDailyStreak();
+      return { streak: result.streak, graceConsumedToday: result.graceConsumedToday };
+    } catch { return null; }
+  });
 
   return (
     <div
@@ -125,7 +139,21 @@ export function SessionComplete({
           )}
         </motion.div>
 
-        {/* 「またあした」ボタン（自動遷移なし）*/}
+        {/* ストリーク表示 */}
+        {streakState && streakState.streak.currentDays > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.3, duration: 0.35 }}
+          >
+            <DailyStreakBadge
+              streak={streakState.streak}
+              graceConsumedToday={streakState.graceConsumedToday}
+            />
+          </motion.div>
+        )}
+
+        {/* CTA ボタン（自動遷移なし）*/}
         <motion.button
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,9 +165,9 @@ export function SessionComplete({
             color: '#fff',
             boxShadow: '0 4px 24px rgba(108, 60, 225, 0.4)',
           }}
-          aria-label="またあした"
+          aria-label={ctaLabel}
         >
-          またあした
+          {ctaLabel}
         </motion.button>
       </motion.div>
     </div>
