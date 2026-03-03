@@ -9,6 +9,7 @@ import { VocabIcon } from '@/components/icons';
 import { kotobaCatchConfig } from './config';
 import { generateVocabTrial, speakWord, type VocabTrial } from './stimuli';
 import { nowMs } from '@/lib/utils';
+import { detectNearMiss, type NearMissResult, NOT_NEAR_MISS } from '@/features/near-miss';
 
 interface KotobaCatchProps {
   ageGroup: AgeGroup;
@@ -25,6 +26,7 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
   const [phase, setPhase] = useState<Phase>('ready');
   const [trial, setTrial] = useState<VocabTrial | null>(null);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [nearMissResult, setNearMissResult] = useState<NearMissResult>(NOT_NEAR_MISS);
 
   const effectiveMaxTrials = stageModeTrials ?? kotobaCatchConfig.trial_count_range.max;
   const wordCategory = (session.difficulty.word_category as string) || 'basic_noun';
@@ -70,12 +72,30 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
     const isCorrect = choice.isCorrect;
     session.completeTrial(isCorrect, isCorrect ? null : 'selection');
 
+    // ニアミス判定: 同じカテゴリの別単語を選択した場合
+    let nmResult = NOT_NEAR_MISS;
+    if (!isCorrect) {
+      nmResult = detectNearMiss({
+        gameId: 'kotoba-catch',
+        correctAnswer: { target_word: trial?.targetWord },
+        userResponse: { selected: choice.word },
+        errorType: 'selection',
+        extra: {
+          // すべての選択肢は同じcategory poolから選ばれるため
+          // この場合は常にsame_categoryがtrue
+          targetCategory: wordCategory,
+          selectedCategory: wordCategory,
+        },
+      });
+    }
+    setNearMissResult(nmResult);
     setFeedbackCorrect(isCorrect);
     setPhase('feedback');
-  }, [phase, session]);
+  }, [phase, session, trial, wordCategory]);
 
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('ready');
     setTimeout(nextTrial, session.getITIMs());
   }, [nextTrial, session]);
@@ -146,7 +166,12 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
       </div>
 
       {feedbackCorrect !== null && (
-        <TrialFeedback isCorrect={feedbackCorrect} onComplete={handleFeedbackComplete} />
+        <TrialFeedback
+          isCorrect={feedbackCorrect}
+          isNearMiss={nearMissResult.isNearMiss}
+          nearMissMessage={nearMissResult.message}
+          onComplete={handleFeedbackComplete}
+        />
       )}
     </GameShell>
   );

@@ -7,6 +7,7 @@ import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { patternPuzzleConfig } from './config';
 import { nowMs, shuffle, shuffleWithBiasGuard, randomInt } from '@/lib/utils';
+import { detectNearMiss, type NearMissResult, NOT_NEAR_MISS } from '@/features/near-miss';
 
 interface PatternPuzzleProps {
   ageGroup: AgeGroup;
@@ -132,6 +133,7 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
   const [phase, setPhase] = useState<Phase>('ready');
   const [trial, setTrial] = useState<PatternTrial | null>(null);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [nearMissResult, setNearMissResult] = useState<NearMissResult>(NOT_NEAR_MISS);
   const recentPositionsRef = React.useRef<number[]>([]);
 
   const effectiveMaxTrials = stageModeTrials ?? patternPuzzleConfig.trial_count_range.max;
@@ -168,12 +170,24 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
     const isCorrect = choice.isCorrect;
     session.completeTrial(isCorrect, isCorrect ? null : 'selection');
 
+    // ニアミス判定
+    let nmResult = NOT_NEAR_MISS;
+    if (!isCorrect && trial) {
+      nmResult = detectNearMiss({
+        gameId: 'pattern-puzzle',
+        correctAnswer: { correct: trial.correctAnswer },
+        userResponse: { selected: { shape: choice.shape, color: choice.color } },
+        errorType: 'selection',
+      });
+    }
+    setNearMissResult(nmResult);
     setFeedbackCorrect(isCorrect);
     setPhase('feedback');
   }, [phase, trial, session]);
 
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('ready');
     setTimeout(nextTrial, session.getITIMs());
   }, [nextTrial, session]);
@@ -235,7 +249,12 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
       </div>
 
       {feedbackCorrect !== null && (
-        <TrialFeedback isCorrect={feedbackCorrect} onComplete={handleFeedbackComplete} />
+        <TrialFeedback
+          isCorrect={feedbackCorrect}
+          isNearMiss={nearMissResult.isNearMiss}
+          nearMissMessage={nearMissResult.message}
+          onComplete={handleFeedbackComplete}
+        />
       )}
     </GameShell>
   );

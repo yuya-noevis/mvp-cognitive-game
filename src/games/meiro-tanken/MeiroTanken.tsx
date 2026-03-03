@@ -8,6 +8,7 @@ import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { FlagIcon } from '@/components/icons';
 import { meiroTankenConfig } from './config';
 import { nowMs, randomInt } from '@/lib/utils';
+import { detectNearMiss, type NearMissResult, NOT_NEAR_MISS } from '@/features/near-miss';
 
 interface MeiroTankenProps {
   ageGroup: AgeGroup;
@@ -100,7 +101,9 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
   const [path, setPath] = useState<string[]>([]);
   const [errors, setErrors] = useState(0);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [nearMissResult, setNearMissResult] = useState<NearMissResult>(NOT_NEAR_MISS);
   const startTimeRef = useRef(0);
+  const mazeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const effectiveMaxTrials = stageModeTrials ?? meiroTankenConfig.trial_count_range.max;
   const mazeSize = (session.difficulty.maze_size as number) || 3;
@@ -116,6 +119,7 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
     setPlayerPos({ row: 0, col: 0 });
     setPath(['0,0']);
     setErrors(0);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('playing');
     startTimeRef.current = nowMs();
 
@@ -124,7 +128,46 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
       { goal: { row: mazeSize - 1, col: mazeSize - 1 } },
     );
     session.presentStimulus();
+
+    // めいろのタイムアウト（30秒）
+    if (mazeTimeoutRef.current) clearTimeout(mazeTimeoutRef.current);
+    mazeTimeoutRef.current = setTimeout(() => {
+      handleMazeTimeout(newMaze, mazeSize);
+    }, 30_000);
   }, [session, effectiveMaxTrials, mazeSize]);
+
+  // めいろタイムアウト時のニアミス判定
+  const handleMazeTimeout = useCallback((currentMaze: CellType[][], currentMazeSize: number) => {
+    if (phase !== 'playing') return;
+
+    const response: TrialResponse = {
+      type: 'timeout',
+      value: { timed_out: true, path_length: path.length, errors },
+      timestamp_ms: nowMs(),
+    };
+    session.recordResponse(response);
+    session.completeTrial(false, 'omission');
+
+    // ニアミス判定: ゴールまでの距離で判定
+    const goalRow = currentMazeSize - 1;
+    const goalCol = currentMazeSize - 1;
+    const nmResult = detectNearMiss({
+      gameId: 'meiro-tanken',
+      correctAnswer: { goal: { row: goalRow, col: goalCol } },
+      userResponse: {},
+      errorType: 'omission',
+      extra: {
+        playerPosition: playerPos,
+        goalPosition: { row: goalRow, col: goalCol },
+        mazeSize: currentMazeSize,
+      },
+    });
+
+    setNearMissResult(nmResult);
+    setFeedbackCorrect(false);
+    setPhase('feedback');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, playerPos, path, errors, session]);
 
   const handleCellTap = useCallback((row: number, col: number) => {
     if (phase !== 'playing') return;
@@ -145,6 +188,7 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
 
     // Check if reached goal
     if (maze[row][col] === 'goal') {
+      if (mazeTimeoutRef.current) clearTimeout(mazeTimeoutRef.current);
       const totalTime = nowMs() - startTimeRef.current;
       const response: TrialResponse = {
         type: 'sequence',
@@ -160,6 +204,7 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
 
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('ready');
     setTimeout(nextTrial, session.getITIMs());
   }, [nextTrial, session]);
@@ -169,6 +214,13 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
       nextTrial();
     }
   }, [session.sessionId, phase, session.totalTrials, nextTrial]);
+
+  // Cleanup maze timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (mazeTimeoutRef.current) clearTimeout(mazeTimeoutRef.current);
+    };
+  }, []);
 
   const cellSize = Math.min(280 / mazeSize, 80);
 
@@ -227,7 +279,12 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
       </div>
 
       {feedbackCorrect !== null && (
-        <TrialFeedback isCorrect={feedbackCorrect} onComplete={handleFeedbackComplete} />
+        <TrialFeedback
+          isCorrect={feedbackCorrect}
+          isNearMiss={nearMissResult.isNearMiss}
+          nearMissMessage={nearMissResult.message}
+          onComplete={handleFeedbackComplete}
+        />
       )}
     </GameShell>
   );

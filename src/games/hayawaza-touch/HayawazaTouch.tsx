@@ -9,6 +9,7 @@ import { StarIcon } from '@/components/icons';
 import { hayawazaTouchConfig } from './config';
 import { RESPONSE_WINDOW_BY_AGE } from '@/lib/constants';
 import { nowMs, randomInt } from '@/lib/utils';
+import { detectNearMiss, type NearMissResult, NOT_NEAR_MISS } from '@/features/near-miss';
 
 interface HayawazaTouchProps {
   ageGroup: AgeGroup;
@@ -37,6 +38,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
   const [phase, setPhase] = useState<Phase>('ready');
   const [isTarget, setIsTarget] = useState(true);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [nearMissResult, setNearMissResult] = useState<NearMissResult>(NOT_NEAR_MISS);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const stimulusOnsetRef = useRef(0);
 
@@ -112,9 +114,26 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
     }
 
     session.completeTrial(isCorrect, errorType);
+
+    // ニアミス判定
+    let nmResult = NOT_NEAR_MISS;
+    if (!isCorrect) {
+      nmResult = detectNearMiss({
+        gameId: 'hayawaza-touch',
+        correctAnswer: { expected: isTarget ? 'tap' : 'withhold' },
+        userResponse: { action: 'tap' },
+        errorType,
+        extra: {
+          reactionTimeMs: rt,
+          responseWindowMs: responseWindow,
+          isAnticipation,
+        },
+      });
+    }
+    setNearMissResult(nmResult);
     setFeedbackCorrect(isCorrect);
     setPhase('feedback');
-  }, [phase, session, mode, isTarget, clearTimer]);
+  }, [phase, session, mode, isTarget, clearTimer, responseWindow]);
 
   const handleTimeout = useCallback((wasTarget: boolean) => {
     const response: TrialResponse = {
@@ -135,6 +154,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
 
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('iti');
     setTimeout(nextTrial, session.getITIMs());
   }, [nextTrial, session]);
@@ -199,6 +219,8 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
       {feedbackCorrect !== null && (
         <TrialFeedback
           isCorrect={feedbackCorrect}
+          isNearMiss={nearMissResult.isNearMiss}
+          nearMissMessage={nearMissResult.message}
           onComplete={handleFeedbackComplete}
         />
       )}

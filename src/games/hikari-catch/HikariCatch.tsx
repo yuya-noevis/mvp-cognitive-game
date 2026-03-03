@@ -9,6 +9,7 @@ import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { hikariCatchConfig } from './config';
 import { generateHikariStimulus, getCreatureImagePath, type HikariStimulus, type HikariItem } from './stimuli';
 import { nowMs } from '@/lib/utils';
+import { detectNearMiss, type NearMissResult, NOT_NEAR_MISS } from '@/features/near-miss';
 
 interface HikariCatchProps {
   ageGroup: AgeGroup;
@@ -26,6 +27,7 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
   const [phase, setPhase] = useState<Phase>('ready');
   const [stimulus, setStimulus] = useState<HikariStimulus | null>(null);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [nearMissResult, setNearMissResult] = useState<NearMissResult>(NOT_NEAR_MISS);
   const [targetId, setTargetId] = useState<string>('');
   const maxTrials = maxTrialsProp ?? hikariCatchConfig.trial_count_range.max;
   const displayDuration = (session.difficulty.display_duration_ms as number) || 2000;
@@ -71,6 +73,19 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
     const errorType = !isCorrect ? (item.isTarget ? null : 'commission' as const) : null;
     session.completeTrial(isCorrect, errorType);
 
+    // ニアミス判定
+    let nmResult = NOT_NEAR_MISS;
+    if (!isCorrect) {
+      const rt = nowMs() - (session.currentTrial?.stimulusPresentedAt ?? nowMs());
+      nmResult = detectNearMiss({
+        gameId: 'hikari-catch',
+        correctAnswer: { targetId },
+        userResponse: { tappedId: item.id, isTarget: item.isTarget },
+        errorType,
+        extra: { reactionTimeMs: rt, responseWindowMs: displayDuration },
+      });
+    }
+    setNearMissResult(nmResult);
     setFeedbackCorrect(isCorrect);
     setPhase('feedback');
   }, [phase, session]);
@@ -78,6 +93,7 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
   // After feedback, go to next trial (ITI: Inter-Trial Interval)
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('ready');
     // ITI: 障害種別に応じた試行間インターバル
     setTimeout(nextTrial, session.getITIMs());
@@ -147,6 +163,8 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
       {feedbackCorrect !== null && (
         <TrialFeedback
           isCorrect={feedbackCorrect}
+          isNearMiss={nearMissResult.isNearMiss}
+          nearMissMessage={nearMissResult.message}
           onComplete={handleFeedbackComplete}
         />
       )}

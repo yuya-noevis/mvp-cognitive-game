@@ -11,6 +11,10 @@ interface TrialFeedbackProps {
   durationMs?: number;
   /** 'nogo_correct' for inhibition success, 'big_reward' for streak/milestone */
   variant?: 'normal' | 'nogo_correct' | 'big_reward';
+  /** ニアミス判定結果（不正解時にtrueなら「おしい！」フィードバックを表示） */
+  isNearMiss?: boolean;
+  /** ニアミス時のカスタムメッセージ */
+  nearMissMessage?: string | null;
 }
 
 interface Particle {
@@ -48,6 +52,8 @@ export function TrialFeedback({
   onComplete,
   durationMs = 1200,
   variant = 'normal',
+  isNearMiss = false,
+  nearMissMessage,
 }: TrialFeedbackProps) {
   const [visible, setVisible] = useState(true);
   const [showMogura, setShowMogura] = useState(false);
@@ -60,10 +66,12 @@ export function TrialFeedback({
     feedbackTriggered.current = true;
     if (isCorrect) {
       feedback.triggerCorrect();
+    } else if (isNearMiss) {
+      feedback.triggerNearMiss();
     } else {
       feedback.triggerIncorrect();
     }
-  }, [isCorrect, feedback]);
+  }, [isCorrect, isNearMiss, feedback]);
 
   const particles = useMemo(() => {
     if (!isCorrect) return [];
@@ -98,6 +106,38 @@ export function TrialFeedback({
   }, [durationMs, onComplete]);
 
   if (!visible) return null;
+
+  // Near-miss: 「おしい！」フィードバック（黄色グロー + 励ましメッセージ）
+  if (!isCorrect && isNearMiss) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+        {/* 黄色グロー背景 */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 50% 50%, rgba(255, 212, 59, 0.15) 0%, transparent 60%)',
+          }}
+        />
+        {/* 「おしい！」テキスト */}
+        <div className="flex flex-col items-center gap-2 animate-fade-in-up">
+          <span
+            className="text-3xl font-bold"
+            style={{ color: '#FFD43B', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+          >
+            おしい！
+          </span>
+          {nearMissMessage && (
+            <span
+              className="text-base font-medium"
+              style={{ color: '#F0F0FF', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+            >
+              {nearMissMessage}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Incorrect: just shake, nothing else
   if (!isCorrect) {

@@ -8,6 +8,7 @@ import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { GemIcon } from '@/components/icons';
 import { oboeteNarabeteConfig } from './config';
 import { nowMs, randomInt } from '@/lib/utils';
+import { detectNearMiss, type NearMissResult, NOT_NEAR_MISS } from '@/features/near-miss';
 
 interface OboeteNarabeteProps {
   ageGroup: AgeGroup;
@@ -38,6 +39,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
   const [highlightedCell, setHighlightedCell] = useState<number | null>(null);
   const [inputSequence, setInputSequence] = useState<number[]>([]);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [nearMissResult, setNearMissResult] = useState<NearMissResult>(NOT_NEAR_MISS);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const maxTrials = maxTrialsProp ?? oboeteNarabeteConfig.trial_count_range.max;
@@ -124,7 +126,6 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
       // Find first error position
       let errorType = null;
       if (!isCorrect) {
-        const errorPos = newInput.findIndex((val, idx) => val !== sequence[idx]);
         errorType = 'position' as const;
       }
 
@@ -136,6 +137,17 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
       session.recordResponse(response);
       session.completeTrial(isCorrect, errorType);
 
+      // ニアミス判定
+      let nmResult = NOT_NEAR_MISS;
+      if (!isCorrect) {
+        nmResult = detectNearMiss({
+          gameId: 'oboete-narabete',
+          correctAnswer: { expected_sequence: sequence },
+          userResponse: { input_sequence: newInput },
+          errorType,
+        });
+      }
+      setNearMissResult(nmResult);
       setFeedbackCorrect(isCorrect);
       setPhase('feedback');
     }
@@ -143,6 +155,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
 
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('ready');
     setTimeout(nextTrial, session.getITIMs());
   }, [nextTrial, session]);
@@ -200,6 +213,8 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
       {feedbackCorrect !== null && (
         <TrialFeedback
           isCorrect={feedbackCorrect}
+          isNearMiss={nearMissResult.isNearMiss}
+          nearMissMessage={nearMissResult.message}
           onComplete={handleFeedbackComplete}
         />
       )}

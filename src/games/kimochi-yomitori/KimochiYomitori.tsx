@@ -8,6 +8,7 @@ import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { KimochiYomitoriIcons } from '@/components/icons';
 import { kimochiYomitoriConfig } from './config';
 import { nowMs, shuffle, randomInt } from '@/lib/utils';
+import { detectNearMiss, type NearMissResult, NOT_NEAR_MISS } from '@/features/near-miss';
 
 interface KimochiYomitoriProps {
   ageGroup: AgeGroup;
@@ -84,6 +85,7 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
   const [targetEmotion, setTargetEmotion] = useState<Emotion | null>(null);
   const [choices, setChoices] = useState<{ id: string; emotion: Emotion; isCorrect: boolean }[]>([]);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [nearMissResult, setNearMissResult] = useState<NearMissResult>(NOT_NEAR_MISS);
 
   const effectiveMaxTrials = stageModeTrials ?? kimochiYomitoriConfig.trial_count_range.max;
   const choiceCount = (session.difficulty.choice_count as number) || 2;
@@ -120,12 +122,28 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
     const isCorrect = choice.isCorrect;
     session.completeTrial(isCorrect, isCorrect ? null : 'selection');
 
+    // ニアミス判定: valence（正負）が一致している場合
+    let nmResult = NOT_NEAR_MISS;
+    if (!isCorrect && targetEmotion) {
+      nmResult = detectNearMiss({
+        gameId: 'kimochi-yomitori',
+        correctAnswer: { correct_emotion: targetEmotion.id },
+        userResponse: { selected: choice.emotion.id },
+        errorType: 'selection',
+        extra: {
+          targetGroup: targetEmotion.group,
+          selectedGroup: choice.emotion.group,
+        },
+      });
+    }
+    setNearMissResult(nmResult);
     setFeedbackCorrect(isCorrect);
     setPhase('feedback');
-  }, [phase, session]);
+  }, [phase, session, targetEmotion]);
 
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('ready');
     setTimeout(nextTrial, session.getITIMs());
   }, [nextTrial, session]);
@@ -190,7 +208,12 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
       </div>
 
       {feedbackCorrect !== null && (
-        <TrialFeedback isCorrect={feedbackCorrect} onComplete={handleFeedbackComplete} />
+        <TrialFeedback
+          isCorrect={feedbackCorrect}
+          isNearMiss={nearMissResult.isNearMiss}
+          nearMissMessage={nearMissResult.message}
+          onComplete={handleFeedbackComplete}
+        />
       )}
     </GameShell>
   );

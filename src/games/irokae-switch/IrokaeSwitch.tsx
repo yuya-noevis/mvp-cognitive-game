@@ -7,6 +7,7 @@ import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { irokaeSwitchConfig } from './config';
 import { nowMs, randomInt } from '@/lib/utils';
+import { detectNearMiss, type NearMissResult, NOT_NEAR_MISS } from '@/features/near-miss';
 
 interface IrokaeSwitchProps {
   ageGroup: AgeGroup;
@@ -50,6 +51,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
   const [trialInPhase, setTrialInPhase] = useState(0);
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [nearMissResult, setNearMissResult] = useState<NearMissResult>(NOT_NEAR_MISS);
   const [showRuleChange, setShowRuleChange] = useState(false);
   const previousRuleRef = useRef<RuleType>('color');
   const ruleChangeTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -144,6 +146,17 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
     session.recordResponse(response);
     session.completeTrial(isCorrect, errorType);
 
+    // ニアミス判定
+    let nmResult = NOT_NEAR_MISS;
+    if (!isCorrect) {
+      nmResult = detectNearMiss({
+        gameId: 'irokae-switch',
+        correctAnswer: { correct_bin: correctBin },
+        userResponse: { selected_bin: binIndex },
+        errorType,
+      });
+    }
+    setNearMissResult(nmResult);
     setTrialInPhase(prev => prev + 1);
     setFeedbackCorrect(isCorrect);
     setPhase('feedback');
@@ -151,6 +164,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
 
   const handleFeedbackComplete = useCallback(() => {
     setFeedbackCorrect(null);
+    setNearMissResult(NOT_NEAR_MISS);
     setPhase('ready');
     feedbackTimerRef.current = setTimeout(nextTrial, session.getITIMs());
   }, [nextTrial, session]);
@@ -226,6 +240,8 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
       {feedbackCorrect !== null && (
         <TrialFeedback
           isCorrect={feedbackCorrect}
+          isNearMiss={nearMissResult.isNearMiss}
+          nearMissMessage={nearMissResult.message}
           onComplete={handleFeedbackComplete}
         />
       )}
