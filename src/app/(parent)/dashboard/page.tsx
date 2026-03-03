@@ -12,6 +12,25 @@ import type { CognitiveDomain, DomainScore, ScoreConfidence, ScoreTrend } from '
 import { calculateNeed } from '@/features/scoring/need-calculator';
 import { getLocalChildProfile } from '@/lib/local-profile';
 
+// Dashboard components (Section 17)
+import { CognitiveRadarChart } from '@/components/dashboard/CognitiveRadarChart';
+import { GrowthTrendChart } from '@/components/dashboard/GrowthTrendChart';
+import { MonthlyBestSkill } from '@/components/dashboard/MonthlyBestSkill';
+import { DailySummary } from '@/components/dashboard/DailySummary';
+import { ParentNotes } from '@/components/dashboard/ParentNotes';
+import {
+  buildDailySummary,
+  buildDashboardCategoryScores,
+  buildWeeklyTrend,
+  buildMonthlyBestSkill,
+} from '@/components/dashboard/dashboard-data';
+import type {
+  DailySummaryData,
+  CategoryScoreSnapshot,
+  WeeklyTrendPoint,
+  MonthlyBestSkillData,
+} from '@/components/dashboard/dashboard-data';
+
 // ============================================================
 // Dashboard data types
 // ============================================================
@@ -41,11 +60,27 @@ export default function DashboardPage() {
   const [viewLevel, setViewLevel] = useState<ViewLevel>('overview');
   const [selectedDomain, setSelectedDomain] = useState<DomainScore | null>(null);
 
+  // Section 17 dashboard data
+  const [dailySummary, setDailySummary] = useState<DailySummaryData | null>(null);
+  const [categoryScores, setCategoryScores] = useState<CategoryScoreSnapshot[]>([]);
+  const [weeklyTrend, setWeeklyTrend] = useState<WeeklyTrendPoint[]>([]);
+  const [monthlyBest, setMonthlyBest] = useState<MonthlyBestSkillData | null>(null);
+
   useEffect(() => {
     fetchDashboardData().then(d => {
       setData(d);
       setLoading(false);
     });
+
+    // Build Section 17 data (all localStorage-based, safe on client)
+    try {
+      setDailySummary(buildDailySummary());
+      setCategoryScores(buildDashboardCategoryScores());
+      setWeeklyTrend(buildWeeklyTrend(8));
+      setMonthlyBest(buildMonthlyBestSkill());
+    } catch {
+      // localStorage may not be available during SSR
+    }
   }, []);
 
   if (loading) {
@@ -103,32 +138,12 @@ export default function DashboardPage() {
       </header>
 
       <main className="relative z-10 max-w-[430px] mx-auto px-5 space-y-4 pb-8 pt-4">
-        {/* [1-2] Today's Summary — 3 cards */}
-        <div className="grid grid-cols-3 gap-3 animate-fade-in-up">
-          {/* Play count (cosmic) */}
-          <div className="p-3 rounded-2xl text-center"
-               style={{ background: 'rgba(108, 60, 225, 0.15)', border: '1px solid rgba(108, 60, 225, 0.25)' }}>
-            <PlayIcon size={22} style={{ color: '#8B5CF6' }} />
-            <p className="text-xl font-bold mt-1" style={{ color: '#F0F0FF' }}>{d.todaySessionCount}</p>
-            <p className="text-xs" style={{ color: '#8888AA' }}>プレイ</p>
-          </div>
-          {/* Play time (comet) */}
-          <div className="p-3 rounded-2xl text-center"
-               style={{ background: 'rgba(78, 205, 196, 0.12)', border: '1px solid rgba(78, 205, 196, 0.25)' }}>
-            <TimerIcon size={22} style={{ color: '#4ECDC4' }} />
-            <p className="text-xl font-bold mt-1" style={{ color: '#F0F0FF' }}>{d.todayPlayTimeMin}分</p>
-            <p className="text-xs" style={{ color: '#8888AA' }}>プレイ時間</p>
-          </div>
-          {/* Growth trend (aurora) */}
-          <div className="p-3 rounded-2xl text-center"
-               style={{ background: 'rgba(46, 213, 115, 0.12)', border: '1px solid rgba(46, 213, 115, 0.25)' }}>
-            <TrendArrow trend={d.overallTrend} size={22} />
-            <p className="text-sm font-bold mt-1" style={{ color: '#F0F0FF' }}>
-              {d.overallTrend === 'improving' ? '向上中' : d.overallTrend === 'declining' ? '注意' : '安定'}
-            </p>
-            <p className="text-xs" style={{ color: '#8888AA' }}>成長</p>
-          </div>
-        </div>
+        {/* [Section 17-1] Daily Summary */}
+        {dailySummary && (
+          <section className="animate-fade-in-up">
+            <DailySummary data={dailySummary} />
+          </section>
+        )}
 
         {/* Streak */}
         {d.streakDays > 0 && (
@@ -138,6 +153,52 @@ export default function DashboardPage() {
             <span className="text-sm font-bold" style={{ color: '#FFD43B' }}>{d.streakDays}日連続！</span>
           </div>
         )}
+
+        {/* [Section 17-2] Cognitive Radar Chart (5 categories) */}
+        <section className="animate-fade-in-up">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold" style={{ color: '#B8B8D0' }}>
+              認知プロファイル
+            </h3>
+            <span className="text-xs px-2 py-0.5 rounded-full"
+                  style={{ background: 'rgba(78, 205, 196, 0.12)', color: '#4ECDC4' }}>
+              5カテゴリ
+            </span>
+          </div>
+          <div
+            className="p-4 rounded-2xl"
+            style={{
+              background: 'rgba(42, 42, 90, 0.3)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <CognitiveRadarChart scores={categoryScores} />
+            <p className="text-xs text-center mt-2" style={{ color: '#8888AA' }}>
+              お子さまの注意力・記憶力・柔軟性のプロファイルが見えてきます
+            </p>
+          </div>
+        </section>
+
+        {/* [Section 17-4] Monthly Best Skill */}
+        <section className="animate-fade-in-up">
+          <MonthlyBestSkill data={monthlyBest} />
+        </section>
+
+        {/* [Section 17-3] Growth Trend Chart */}
+        <section className="animate-fade-in-up">
+          <h3 className="text-sm font-bold mb-2" style={{ color: '#B8B8D0' }}>
+            成長トレンド
+          </h3>
+          <div
+            className="p-4 rounded-2xl"
+            style={{
+              background: 'rgba(42, 42, 90, 0.3)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <GrowthTrendChart data={weeklyTrend} />
+          </div>
+        </section>
 
         {/* [1-3] Recommendations (Need top 3) */}
         {topNeedDomains.length > 0 && (
@@ -176,10 +237,10 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* All domains — 4-axis cards */}
+        {/* All domains - 4-axis cards */}
         <section className="animate-fade-in-up">
           <h3 className="text-sm font-bold mb-3" style={{ color: '#B8B8D0' }}>
-            認知プロフィール
+            15ドメイン詳細
           </h3>
           <div className="space-y-2">
             {d.domainScores.map((ds) => (
@@ -190,6 +251,11 @@ export default function DashboardPage() {
               />
             ))}
           </div>
+        </section>
+
+        {/* [Section 17-5] Parent Notes */}
+        <section className="animate-fade-in-up">
+          <ParentNotes />
         </section>
 
         {/* Profile completion prompt */}
@@ -221,7 +287,7 @@ export default function DashboardPage() {
 }
 
 // ============================================================
-// DomainCard — 4-axis mini display
+// DomainCard - 4-axis mini display
 // ============================================================
 function DomainCard({ domainScore: ds, onTap }: { domainScore: DomainScore; onTap: () => void }) {
   const meta = COGNITIVE_DOMAINS.find(c => c.key === ds.domain);
@@ -346,7 +412,7 @@ function DomainDetailView({
           <p className="text-sm mt-2" style={{ color: '#B8B8D0' }}>{meta?.description}</p>
         </div>
 
-        {/* 4-axis cards — compact mobile grid */}
+        {/* 4-axis cards - compact mobile grid */}
         <div className="grid grid-cols-2 gap-3 animate-fade-in-up">
           {/* Confidence */}
           <div className="p-4 rounded-2xl"
@@ -390,7 +456,7 @@ function DomainDetailView({
           </div>
         </div>
 
-        {/* Load warning — misinterpretation prevention */}
+        {/* Load warning - misinterpretation prevention */}
         {showLoadWarning && (
           <div className="p-4 rounded-2xl animate-fade-in-up"
                style={{ background: 'rgba(255, 212, 59, 0.1)', border: '1px solid rgba(255, 212, 59, 0.2)' }}>
