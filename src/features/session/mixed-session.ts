@@ -23,10 +23,10 @@ export interface MixedSessionPlan {
 export function getMixedSessionConfig(tier: Tier): MixedSessionConfig {
   switch (tier) {
     case 1:
-      return { tier, gameCount: 2, trialsPerGame: 8, warmupTrials: 2 };
+      return { tier, gameCount: 2, trialsPerGame: 2, warmupTrials: 1 };
     case 2:
-      return { tier, gameCount: 3, trialsPerGame: 6, warmupTrials: 2 };
+      return { tier, gameCount: 3, trialsPerGame: 2, warmupTrials: 1 };
     case 3:
-      return { tier, gameCount: 3, trialsPerGame: 8, warmupTrials: 2 };
+      return { tier, gameCount: 3, trialsPerGame: 3, warmupTrials: 2 };
   }
 }

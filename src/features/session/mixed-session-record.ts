@@ -11,6 +11,8 @@ export interface MixedSessionRecord {
   totalAttempts: number;
   accuracy: number;
   durationSec: number;
+  /** ゲーム別正答率 (v3 Section 9) */
+  perGameAccuracy?: Partial<Record<IntegratedGameId, number>>;
 }
 
 export function saveMixedSessionRecord(record: Omit<MixedSessionRecord, 'id'>): void {

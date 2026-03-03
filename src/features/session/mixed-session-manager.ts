@@ -27,6 +27,7 @@ export class MixedSessionManager {
   private totalTrialsCompleted: number = 0;
   private warmupCompleted: boolean = false;
   private results: MixedTrialResult[] = [];
+  private warmupResults: { correct: boolean }[] = [];
   private startTime: number = 0;
 
   constructor(plan: MixedSessionPlan) {
@@ -81,6 +82,7 @@ export class MixedSessionManager {
 
     // ウォームアップ処理
     if (this.isWarmup()) {
+      this.warmupResults.push({ correct });
       this.totalTrialsCompleted++;
       if (this.totalTrialsCompleted >= this.plan.config.warmupTrials) {
         this.warmupCompleted = true;
@@ -203,5 +205,18 @@ export class MixedSessionManager {
 
   getSessionDurationSec(): number {
     return this.getSessionDurationMs() / 1000;
+  }
+
+  /**
+   * ウォームアップ結果に基づくDDA初期難易度調整値を返す。
+   * 全正解→0, 半分不正解→-1, 全不正解→-2
+   */
+  getWarmupAdjustment(): number {
+    if (this.warmupResults.length === 0) return 0;
+    const incorrectCount = this.warmupResults.filter(r => !r.correct).length;
+    const incorrectRate = incorrectCount / this.warmupResults.length;
+    if (incorrectRate >= 1) return -2;
+    if (incorrectRate >= 0.5) return -1;
+    return 0;
   }
 }

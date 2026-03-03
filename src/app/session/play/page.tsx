@@ -26,8 +26,10 @@ import type { DDAProfile } from '@/features/dda/disability-profile';
 import { getMixedSessionConfig } from '@/features/session/mixed-session';
 import type { MixedSessionPlan, SessionGameSlot } from '@/features/session/mixed-session';
 import { MixedSessionManager } from '@/features/session/mixed-session-manager';
-import { selectGamesForSession, getRecentGames, saveRecentGames } from '@/features/session/session-engine';
+import { selectGamesForSession, getRecentGames, saveRecentGames, saveLastGameOrder } from '@/features/session/session-engine';
 import { saveMixedSessionRecord } from '@/features/session/mixed-session-record';
+import { loadUnitState, getSessionType, advanceUnit } from '@/features/session/unit-tracker';
+import type { SessionType } from '@/features/session/unit-tracker';
 
 // Transition UI components (v3 Section 10)
 import { GameTransition } from '@/components/transitions/GameTransition';
@@ -80,6 +82,9 @@ export default function MixedSessionPlayPage() {
   const [ddaProfile, setDdaProfile] = useState<DDAProfile | undefined>(undefined);
   const [warmupAdjustment, setWarmupAdjustment] = useState<number | undefined>(undefined);
 
+  // Unit / session type
+  const [sessionType, setSessionType] = useState<SessionType>('normal');
+
   // Feedback settings: instructionLevel × sensory settings
   const feedbackSettings = useSensoryFeedbackSettings(instructionLevel);
   const { triggerCorrect, triggerIncorrect, triggerNearMiss, clearEffect, currentEffect } =
@@ -99,9 +104,10 @@ export default function MixedSessionPlayPage() {
     useSessionEndWarningPolled(getElapsedMs, maxSessionMs, 60000, 5000);
 
   // Build session plan
-  const buildSessionPlan = useCallback((): MixedSessionPlan | null => {
+  const buildSessionPlan = useCallback((sType: SessionType): MixedSessionPlan | null => {
     const config = getMixedSessionConfig(tier);
-    const recentGameIds = getRecentGames();
+    // review: recencyフィルタ無効化で全カテゴリカバー
+    const recentGameIds = sType === 'review' ? [] : getRecentGames();
     const selectedGames = selectGamesForSession({
       tier,
       gameCount: config.gameCount,
@@ -135,7 +141,12 @@ export default function MixedSessionPlayPage() {
       return;
     }
 
-    const plan = buildSessionPlan();
+    // Unit tracking: determine session type
+    const unitState = loadUnitState();
+    const sType = getSessionType(unitState);
+    setSessionType(sType);
+
+    const plan = buildSessionPlan(sType);
     if (!plan) return;
 
     const manager = new MixedSessionManager(plan);
@@ -200,8 +211,9 @@ export default function MixedSessionPlayPage() {
     setSessionProgress(result.progress);
     setIsWarmup(manager.isWarmup());
 
-    // Warmup ended
+    // Warmup ended → apply warmup adjustment (v3 Section 9)
     if (wasWarmup && !manager.isWarmup()) {
+      setWarmupAdjustment(manager.getWarmupAdjustment());
       setShowStartBanner(true);
       setTimeout(() => setShowStartBanner(false), 1300);
     }
@@ -220,18 +232,35 @@ export default function MixedSessionPlayPage() {
       console.log('[MixedSession] Session complete! Saving record...');
       const plan = manager.getPlan();
       const stats = manager.getScoredStats();
+      const gameIds = plan.games.map(g => g.gameId);
+
+      // Build per-game accuracy (v3 Section 9)
+      const perGameAccuracy: Partial<Record<IntegratedGameId, number>> = {};
+      for (const game of plan.games) {
+        const gameResults = manager.getGameResults(game.gameId);
+        if (gameResults.length > 0) {
+          const correct = gameResults.filter(r => r.correct).length;
+          perGameAccuracy[game.gameId] = correct / gameResults.length;
+        }
+      }
+
       // Save recent games for diversity
-      saveRecentGames(plan.games.map(g => g.gameId));
+      saveRecentGames(gameIds);
+      // ASD order stabilization (v3 Section 9)
+      saveLastGameOrder(gameIds);
       dailyTracker.recordSessionEnd(manager.getSessionDurationMs());
       // Save mixed session record to localStorage
       saveMixedSessionRecord({
         timestamp: Date.now(),
-        gameIds: plan.games.map(g => g.gameId),
+        gameIds,
         totalCorrect: stats.totalCorrect,
         totalAttempts: stats.totalAttempts,
         accuracy: stats.accuracy,
         durationSec: manager.getSessionDurationSec(),
+        perGameAccuracy,
       });
+      // Advance unit tracker (v3 Section 9)
+      advanceUnit(loadUnitState());
       setPhase('session-complete');
     }
   }, []);
@@ -363,6 +392,7 @@ export default function MixedSessionPlayPage() {
                 tier={tier}
                 plan={sessionPlan}
                 currentGameIndex={manager?.getCurrentGameIndex() ?? 0}
+                sessionType={sessionType}
               />
             )}
           </div>

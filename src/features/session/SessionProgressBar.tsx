@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Tier } from '@/features/gating';
+import type { SessionType } from './unit-tracker';
 
 interface SessionProgressBarProps {
   progress: number;
@@ -116,7 +117,13 @@ interface MixedSessionProgressBarProps {
     games: { gameId: string; trialCount: number; order: number }[];
   };
   currentGameIndex: number;
+  sessionType?: SessionType;
 }
+
+const SESSION_TYPE_BADGE: Partial<Record<SessionType, { label: string; color: string }>> = {
+  bonus: { label: 'ボーナス!', color: '#FFD43B' },
+  review: { label: 'ボスせん!', color: '#A78BFA' },
+};
 
 function MixedDotIndicator({ plan, currentGameIndex, isWarmup }: MixedSessionProgressBarProps) {
   const totalDots = plan.games.reduce((sum, g) => sum + g.trialCount, 0);
@@ -232,10 +239,28 @@ function MixedBarIndicator({ progress, isWarmup, plan, currentGameIndex }: Mixed
 }
 
 export function MixedSessionProgressBar(props: MixedSessionProgressBarProps) {
-  if (props.tier === 1) {
-    return <MixedDotIndicator {...props} />;
-  }
-  return <MixedBarIndicator {...props} />;
+  const badge = props.sessionType ? SESSION_TYPE_BADGE[props.sessionType] : undefined;
+
+  return (
+    <div className="flex items-center gap-2">
+      {badge && (
+        <motion.span
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
+          style={{ color: '#1A1A2E', background: badge.color }}
+        >
+          {badge.label}
+        </motion.span>
+      )}
+      <div className="flex-1">
+        {props.tier === 1
+          ? <MixedDotIndicator {...props} />
+          : <MixedBarIndicator {...props} />
+        }
+      </div>
+    </div>
+  );
 }
 
 export function WarmupStartBanner() {
