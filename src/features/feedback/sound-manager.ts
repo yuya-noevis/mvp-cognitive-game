@@ -115,6 +115,23 @@ export class SoundManager {
       osc.stop(ctx.currentTime + 0.22);
     } catch {/* ignore */}
   }
+
+  /**
+   * ユーザー操作時に呼び出して AudioContext を事前初期化する。
+   * iOS/Safari では最初のユーザージェスチャー中に AudioContext を
+   * resume しないと音が出ないため、ゲーム開始ボタン押下時に呼ぶ。
+   */
+  warmup(): void {
+    try {
+      const ctx = this.getContext();
+      // Silent buffer を再生して iOS のオーディオロックを解除
+      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    } catch {/* AudioContext 未対応環境では無視 */}
+  }
 }
 
 export const soundManager = new SoundManager();

@@ -38,8 +38,7 @@ import { SessionComplete, calcStarCount } from '@/components/transitions/Session
 import { TreasureChest } from '@/components/rewards/TreasureChest';
 import { useRewards } from '@/features/rewards/useRewards';
 import { loadDailyStreak } from '@/features/feedback/daily-streak';
-
-const SEEN_KEY_PREFIX = 'manas_instruction_seen_';
+import { soundManager } from '@/features/feedback/sound-manager';
 
 type PagePhase = 'daily-limit' | 'instruction' | 'playing' | 'transition' | 'session-complete' | 'treasure-chest';
 
@@ -170,18 +169,10 @@ export default function MixedSessionPlayPage() {
     const disType = loadDisabilityType();
     setDdaProfile(DDA_PROFILES[disType]);
 
-    // Check if first game needs instruction
+    // 毎ゲーム説明画面を表示（1ゲーム目）
     const firstGameId = manager.getCurrentGameId();
-    try {
-      const seen = window.localStorage.getItem(`${SEEN_KEY_PREFIX}${firstGameId}`);
-      if (!seen) {
-        setPendingInstruction(firstGameId);
-        setPhase('instruction');
-        return;
-      }
-    } catch { /* ignore */ }
-
-    setPhase('playing');
+    setPendingInstruction(firstGameId);
+    setPhase('instruction');
   }, [tier, buildSessionPlan]);
 
   // Initialize on mount (only once)
@@ -193,14 +184,11 @@ export default function MixedSessionPlayPage() {
   }, [loading, tierLoading, instrLoading, initSession]);
 
   const handleInstructionComplete = useCallback(() => {
-    if (pendingInstruction) {
-      try {
-        window.localStorage.setItem(`${SEEN_KEY_PREFIX}${pendingInstruction}`, '1');
-      } catch { /* ignore */ }
-    }
+    // AudioContext をユーザージェスチャー内で事前初期化
+    soundManager.warmup();
     setPendingInstruction(null);
     setPhase('playing');
-  }, [pendingInstruction]);
+  }, []);
 
   // Trial complete handler
   const handleTrialComplete = useCallback((isCorrect: boolean, responseTimeMs: number) => {
@@ -282,9 +270,9 @@ export default function MixedSessionPlayPage() {
     setCurrentGameId(nextGameId);
     setGameKey(prev => prev + 1);
 
-    // 2nd+ games in mixed session: skip instruction, go straight to playing.
-    // Transition screen already introduces the next game.
-    setPhase('playing');
+    // 2nd+ ゲームでも説明画面を表示
+    setPendingInstruction(nextGameId);
+    setPhase('instruction');
   }, []);
 
   const sessionCtxValue = useMemo<SessionContextValue>(() => ({

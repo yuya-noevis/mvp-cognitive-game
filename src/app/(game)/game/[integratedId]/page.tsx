@@ -26,6 +26,7 @@ import { loadDisabilityType } from '@/features/dda/disability-profile-store';
 import { DDA_PROFILES } from '@/features/dda/disability-profile';
 import type { DDAProfile } from '@/features/dda/disability-profile';
 import { useSensoryFeedbackSettings } from '@/features/sensory/useSensoryFeedbackSettings';
+import { soundManager } from '@/features/feedback/sound-manager';
 
 const SEEN_KEY_PREFIX = 'manas_instruction_seen_';
 
@@ -126,12 +127,9 @@ export default function IntegratedGamePage() {
     setSessionProgress(0);
     setIsWarmup(manager.isWarmup());
 
-    if (hasSeen) {
-      setPhase('playing');
-    } else {
-      setPhase('instruction');
-    }
-  }, [tier, hasSeen]);
+    // 毎セッション開始時に説明画面を表示（#9 指示4階層）
+    setPhase('instruction');
+  }, [tier]);
 
   // Initialize on mount (only once)
   useEffect(() => {
@@ -142,6 +140,8 @@ export default function IntegratedGamePage() {
   }, [loading, tierLoading, instrLoading, initSession]);
 
   const handleInstructionComplete = useCallback(() => {
+    // AudioContext をユーザージェスチャー内で事前初期化
+    soundManager.warmup();
     setPhase('playing');
     try {
       window.localStorage.setItem(`${SEEN_KEY_PREFIX}${integratedId}`, '1');
