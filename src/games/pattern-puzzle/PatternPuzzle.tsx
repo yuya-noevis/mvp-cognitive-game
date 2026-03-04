@@ -202,18 +202,18 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
     <GameShell gameName="パターンパズル" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
       <div className="flex flex-col items-center w-full">
-        <p className="text-lg font-medium mb-4" style={{ color: 'var(--color-primary-dark)' }}>
+        <p className="text-lg font-medium mb-3" style={{ color: 'var(--color-primary-dark)' }}>
           ？に はいるのは どれ？
         </p>
 
         {/* 3x3 Grid */}
         {trial && (
           <>
-            <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="grid grid-cols-3 gap-2 mb-4 w-full">
               {trial.grid.map((cell, i) => (
                 <div
                   key={i}
-                  className="w-20 h-20 rounded-xl flex items-center justify-center border-2"
+                  className="aspect-square rounded-xl flex items-center justify-center border-2"
                   style={{
                     background: cell.isMissing ? 'var(--color-border-light)' : 'var(--color-surface)',
                     borderColor: cell.isMissing ? 'var(--color-primary)' : 'var(--color-border-light)',
@@ -221,26 +221,26 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
                   }}
                 >
                   {cell.isMissing ? (
-                    <span className="text-2xl" style={{ color: 'var(--color-primary)' }}>？</span>
+                    <span className="text-3xl" style={{ color: 'var(--color-primary)' }}>？</span>
                   ) : (
-                    <span className="text-3xl" style={{ color: cell.color }}>{cell.shape}</span>
+                    <span className="text-4xl" style={{ color: cell.color }}>{cell.shape}</span>
                   )}
                 </div>
               ))}
             </div>
 
             {/* Choices */}
-            <div className="flex gap-3 flex-wrap justify-center">
+            <div className="grid grid-cols-3 gap-2 w-full">
               {trial.choices.map(choice => (
                 <button
                   key={choice.id}
                   onClick={() => handleSelect(choice)}
                   disabled={phase !== 'showing'}
-                  className="tap-target-large w-16 h-16 rounded-xl flex items-center justify-center
+                  className="tap-target-large aspect-square rounded-xl flex items-center justify-center
                     border-2 border-gray-200 hover:border-purple-500 active:scale-95 transition-all"
                   style={{ background: 'var(--color-surface)' }}
                 >
-                  <span className="text-2xl" style={{ color: choice.color }}>{choice.shape}</span>
+                  <span className="text-3xl" style={{ color: choice.color }}>{choice.shape}</span>
                 </button>
               ))}
             </div>

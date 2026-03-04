@@ -61,10 +61,9 @@ export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTri
     // Random delay before target appears
     const delay = randomInt(500, 1500);
     timerRef.current = setTimeout(() => {
-      // Random position (keep within safe area considering target size)
-      const margin = targetSize / 2 + 10;
-      const x = randomInt(margin, 300 - margin);
-      const y = randomInt(margin, 300 - margin);
+      // Random position (percentage-based, keep within safe area)
+      const x = randomInt(15, 85);
+      const y = randomInt(15, 85);
       setTargetX(x);
       setTargetY(y);
       setTargetVisualIndex(randomInt(0, TARGET_VISUALS.length - 1));
@@ -137,10 +136,8 @@ export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTri
         </p>
 
         {/* Game area */}
-        <div className="relative rounded-3xl overflow-hidden"
+        <div className="relative w-full aspect-square rounded-3xl overflow-hidden"
              style={{
-               width: '300px',
-               height: '300px',
                background: 'var(--color-surface)',
                border: '2px solid var(--color-border-light)',
              }}>
@@ -158,8 +155,8 @@ export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTri
               className="absolute rounded-full flex items-center justify-center
                 animate-scale-in active:scale-75 transition-transform"
               style={{
-                left: `${targetX}px`,
-                top: `${targetY}px`,
+                left: `${targetX}%`,
+                top: `${targetY}%`,
                 width: `${targetSize}px`,
                 height: `${targetSize}px`,
                 transform: 'translate(-50%, -50%)',

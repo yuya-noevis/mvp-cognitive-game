@@ -161,26 +161,26 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
         {/* Face display */}
         {targetEmotion && phase === 'showing' && (
           <>
-            <div className="text-center mb-6">
+            <div className="text-center mb-4">
               <p className="text-base font-medium mb-3" style={{ color: 'var(--color-text-muted)' }}>
                 このかおは どんな きもち？
               </p>
-              <div className="w-36 h-36 rounded-full flex items-center justify-center mx-auto"
+              <div className="w-44 h-44 rounded-full flex items-center justify-center mx-auto"
                    style={{ background: 'var(--color-surface)', border: '4px solid var(--color-border-light)' }}>
                 {(() => {
                   const FaceIcon = KimochiYomitoriIcons[targetEmotion.iconKey];
-                  return FaceIcon ? <FaceIcon size={96} style={{ color: '#8B5CF6' }} /> : null;
+                  return FaceIcon ? <FaceIcon size={112} style={{ color: '#8B5CF6' }} /> : null;
                 })()}
               </div>
             </div>
 
             {/* Emotion choices */}
-            <div className="grid grid-cols-2 gap-3 w-full">
+            <div className="grid grid-cols-2 gap-2 w-full">
               {choices.map(choice => (
                 <button
                   key={choice.id}
                   onClick={() => handleSelect(choice)}
-                  className="tap-target-large flex items-center gap-3 px-4 py-3 rounded-2xl
+                  className="tap-target-large flex items-center gap-2 px-3 py-3 rounded-2xl
                     border-2 transition-all active:scale-95 hover:border-purple-400"
                   style={{
                     background: 'var(--color-surface)',
@@ -189,7 +189,7 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
                 >
                   {(() => {
                     const FaceIcon = KimochiYomitoriIcons[choice.emotion.iconKey];
-                    return FaceIcon ? <FaceIcon size={32} style={{ color: '#8B5CF6' }} /> : null;
+                    return FaceIcon ? <FaceIcon size={36} style={{ color: '#8B5CF6' }} /> : null;
                   })()}
                   <span className="text-base font-bold" style={{ color: 'var(--color-text)' }}>
                     {choice.emotion.labelKana}

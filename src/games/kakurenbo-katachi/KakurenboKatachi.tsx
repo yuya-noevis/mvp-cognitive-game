@@ -177,9 +177,9 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
             <p className="text-lg font-medium mb-3" style={{ color: 'var(--color-primary-dark)' }}>
               このかたちを さがしてね！
             </p>
-            <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center"
+            <div className="w-32 h-32 mx-auto rounded-2xl flex items-center justify-center"
                  style={{ background: 'var(--color-primary-bg)' }}>
-              <svg width="48" height="48" viewBox="0 0 45 45">
+              <svg width="64" height="64" viewBox="0 0 45 45">
                 <path d={targetShape.path} fill={targetColor} />
               </svg>
             </div>
@@ -207,14 +207,14 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
               <button
                 key={item.id}
                 onClick={() => handleItemTap(item)}
-                className="absolute transition-transform active:scale-90"
+                className="absolute tap-target transition-transform active:scale-90 flex items-center justify-center"
                 style={{
                   left: `${item.x}%`,
                   top: `${item.y}%`,
                   transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})`,
                 }}
               >
-                <svg width="48" height="48" viewBox="0 0 45 45">
+                <svg width="56" height="56" viewBox="0 0 45 45">
                   <path d={item.path} fill={item.color} opacity={0.85} />
                 </svg>
               </button>

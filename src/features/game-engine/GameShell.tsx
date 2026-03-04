@@ -227,12 +227,12 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
 
   // Active game
   return (
-    <div className="flex min-h-dvh flex-col" style={{ background: bgGradient }}>
+    <div className="flex min-h-dvh flex-col" style={{ background: bgGradient, paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
       <StarParticles count={20} />
 
       {/* Header: hidden when mixed session provides its own controls */}
       {!sessionCtx && (
-        <header className="flex items-center gap-3 h-10 px-4 relative z-10 flex-shrink-0">
+        <header className="flex items-center gap-3 h-10 px-3 relative z-10 flex-shrink-0">
           {/* Mogura face */}
           <div className="flex-shrink-0">
             <Mogura expression="encouraging" size={28} />
@@ -256,7 +256,7 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
       )}
 
       {/* Game content — full width, vertically centered in available space */}
-      <main className={`flex-1 flex flex-col justify-center px-4 relative z-10 ${sessionCtx ? 'pt-10' : ''}`}>
+      <main className={`flex-1 flex flex-col justify-center px-2 relative z-10 ${sessionCtx ? 'pt-10' : ''}`}>
         {children}
       </main>
     </div>

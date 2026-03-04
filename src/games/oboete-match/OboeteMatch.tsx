@@ -135,21 +135,21 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
       <div className="flex flex-col items-center w-full">
         {/* Sample display */}
         {phase === 'sample' && samplePattern && (
-          <div className="text-center mb-6">
+          <div className="text-center mb-4">
             <p className="text-lg font-medium mb-3 text-cosmic-light">
               これを おぼえてね!
             </p>
-            <div className="w-32 h-32 rounded-3xl flex items-center justify-center mx-auto bg-galaxy-light">
-              <Image src={samplePattern.image} alt={samplePattern.label} width={80} height={80} />
+            <div className="w-40 h-40 rounded-3xl flex items-center justify-center mx-auto bg-galaxy-light">
+              <Image src={samplePattern.image} alt={samplePattern.label} width={96} height={96} />
             </div>
           </div>
         )}
 
         {/* Delay phase — show card back */}
         {phase === 'delay' && (
-          <div className="text-center mb-6">
-            <div className="w-32 h-32 rounded-3xl flex items-center justify-center mx-auto animate-gentle-pulse bg-galaxy-light">
-              <Image src={CARD_BACK} alt="card back" width={80} height={80} />
+          <div className="text-center mb-4">
+            <div className="w-40 h-40 rounded-3xl flex items-center justify-center mx-auto animate-gentle-pulse bg-galaxy-light">
+              <Image src={CARD_BACK} alt="card back" width={96} height={96} />
             </div>
             <p className="text-base mt-3 text-moon">
               おぼえてるかな...
@@ -159,19 +159,19 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
 
         {/* Choice phase */}
         {phase === 'choice' && (
-          <div className="text-center">
+          <div className="text-center w-full">
             <p className="text-lg font-medium mb-4 text-cosmic-light">
               おなじものは どれ?
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 w-full">
               {choices.map(choice => (
                 <button
                   key={choice.id}
                   onClick={() => handleSelect(choice)}
-                  className="tap-target-large w-24 h-24 rounded-2xl flex items-center justify-center
+                  className="tap-target-large aspect-square rounded-2xl flex items-center justify-center
                     border-2 border-galaxy-light active:scale-95 transition-all bg-galaxy-light"
                 >
-                  <Image src={choice.pattern.image} alt={choice.pattern.label} width={56} height={56} />
+                  <Image src={choice.pattern.image} alt={choice.pattern.label} width={72} height={72} />
                 </button>
               ))}
             </div>

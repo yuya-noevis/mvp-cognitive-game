@@ -189,7 +189,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
 
       {/* Grid */}
       <div
-        className="grid gap-3 w-full"
+        className="grid gap-2 w-full"
         style={{ gridTemplateColumns: `repeat(${gridDim}, 1fr)` }}
       >
         {Array.from({ length: totalCells }, (_, i) => (

@@ -216,24 +216,24 @@ export default function TsumitageTower({ ageGroup, stageMode, maxTrials: stageMo
         </div>
 
         {/* Current pegs */}
-        <div className="flex justify-center gap-6">
+        <div className="grid grid-cols-3 gap-3 w-full">
           {pegs.map((peg, i) => (
             <button
               key={`peg-${i}`}
               onClick={() => handlePegTap(i)}
               disabled={phase !== 'playing'}
               className={`flex flex-col-reverse items-center justify-end
-                w-20 rounded-2xl p-2 transition-all active:scale-95
+                rounded-2xl p-2 transition-all active:scale-95
                 ${selectedPeg === i ? 'ring-4 ring-purple-500' : ''}
                 ${phase === 'playing' ? 'cursor-pointer' : 'cursor-default'}`}
               style={{
                 background: selectedPeg === i ? 'var(--color-primary-bg)' : 'var(--color-surface)',
-                minHeight: `${PEG_CAPACITIES[i] * 40 + 20}px`,
+                minHeight: `${PEG_CAPACITIES[i] * 44 + 24}px`,
                 border: '2px solid var(--color-border-light)',
               }}
             >
               {peg.map((ball, j) => (
-                <ColorDotIcon key={j} color={BALL_COLORS[ball]} size={32} />
+                <ColorDotIcon key={j} color={BALL_COLORS[ball]} size={36} />
               ))}
               <div className="w-12 h-2 rounded-full mt-auto"
                    style={{ background: 'var(--color-border-light)' }} />

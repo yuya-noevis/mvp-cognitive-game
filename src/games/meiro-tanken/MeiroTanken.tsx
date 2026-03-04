@@ -222,19 +222,17 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
     };
   }, []);
 
-  const cellSize = Math.min(280 / mazeSize, 80);
-
   return (
     <GameShell gameName="めいろたんけん" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
       <div className="flex flex-col items-center w-full">
-        <p className="text-lg font-medium mb-4" style={{ color: 'var(--color-primary-dark)' }}>
+        <p className="text-lg font-medium mb-3" style={{ color: 'var(--color-primary-dark)' }}>
           ゴールまで すすもう！
         </p>
 
         {/* Maze grid */}
-        <div className="grid gap-1"
-             style={{ gridTemplateColumns: `repeat(${mazeSize}, ${cellSize}px)` }}>
+        <div className="grid gap-1 w-full"
+             style={{ gridTemplateColumns: `repeat(${mazeSize}, 1fr)` }}>
           {maze.map((row, r) =>
             row.map((cell, c) => {
               const isPlayer = playerPos.row === r && playerPos.col === c;
@@ -245,10 +243,8 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
                   key={`${r}-${c}`}
                   onClick={() => handleCellTap(r, c)}
                   disabled={phase !== 'playing'}
-                  className="rounded-lg flex items-center justify-center transition-all active:scale-90"
+                  className="aspect-square rounded-lg flex items-center justify-center transition-all active:scale-90"
                   style={{
-                    width: `${cellSize}px`,
-                    height: `${cellSize}px`,
                     background: cell === 'wall'
                       ? 'var(--color-text-muted)'
                       : isPlayer
@@ -262,14 +258,13 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
                   }}
                 >
                   {isPlayer && (
-                    <span className="inline-block rounded-full"
-                      style={{ width: `${cellSize * 0.5}px`, height: `${cellSize * 0.5}px`, background: 'white' }} />
+                    <span className="inline-block rounded-full w-1/2 h-1/2" style={{ background: 'white' }} />
                   )}
                   {!isPlayer && cell === 'start' && !isVisited && (
                     <span className="text-xs font-bold" style={{ color: 'var(--color-primary-dark)' }}>S</span>
                   )}
                   {!isPlayer && cell === 'goal' && (
-                    <FlagIcon size={Math.max(cellSize * 0.5, 16)} style={{ color: '#4ECDC4' }} />
+                    <FlagIcon size={20} style={{ color: '#4ECDC4' }} />
                   )}
                 </button>
               );

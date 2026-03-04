@@ -137,7 +137,7 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
             </div>
 
             {/* Choices */}
-            <div className={`grid gap-4 ${choiceCount <= 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+            <div className="grid grid-cols-2 gap-3 w-full">
               {trial.choices.map(choice => (
                 <button
                   key={choice.id}
@@ -151,7 +151,7 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
                     borderColor: 'var(--color-border-light)',
                   }}
                 >
-                  <VocabIcon word={choice.word} size={64} style={{ color: 'var(--color-primary)' }} />
+                  <VocabIcon word={choice.word} size={72} style={{ color: 'var(--color-primary)' }} />
                 </button>
               ))}
             </div>

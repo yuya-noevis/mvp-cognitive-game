@@ -209,7 +209,7 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
 
         {/* Stimulus area */}
         <div
-          className="w-48 h-48 rounded-full flex items-center justify-center cursor-pointer select-none
+          className="w-full max-w-[280px] aspect-square rounded-full flex items-center justify-center cursor-pointer select-none
             transition-all active:scale-90"
           style={{
             background: phase === 'stimulus' ? 'var(--color-primary-bg)' : 'var(--color-border-light)',

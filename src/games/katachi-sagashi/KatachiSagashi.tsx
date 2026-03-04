@@ -125,13 +125,13 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
     <GameShell gameName="かたちさがし" session={session} maxTrials={maxTrials}>
       {/* Target display */}
       {target && (
-        <div className="mb-6 text-center">
+        <div className="mb-4 text-center">
           <p className="text-lg font-medium mb-2" style={{ color: '#8B5CF6' }}>
             おなじ かたちは どれ？
           </p>
           <div className="inline-block p-4 rounded-2xl shadow-md border-2"
             style={{ background: 'rgba(26,26,64,0.85)', borderColor: 'rgba(139,92,246,0.3)' }}>
-            <svg width="80" height="80" viewBox="0 0 100 100">
+            <svg width="96" height="96" viewBox="0 0 100 100">
               <path d={target.path} fill={target.color} />
             </svg>
           </div>
@@ -139,7 +139,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
       )}
 
       {/* Choices */}
-      <div className="grid grid-cols-2 gap-4 w-full">
+      <div className="grid grid-cols-2 gap-3 w-full">
         {choices.map((choice) => (
           <button
             key={choice.id}
@@ -151,8 +151,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
             style={{ background: 'rgba(26,26,64,0.85)', borderColor: 'rgba(139,92,246,0.2)' }}
           >
             <svg
-              width="64"
-              height="64"
+              className="w-3/5 h-3/5"
               viewBox="0 0 100 100"
               style={{ transform: `rotate(${choice.rotation}deg)` }}
             >

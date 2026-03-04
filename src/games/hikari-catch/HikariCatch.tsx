@@ -116,7 +116,7 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
   return (
     <GameShell gameName="ひかりキャッチ" gameId="hikari-catch" session={session} maxTrials={maxTrials}>
       {/* Target instruction */}
-      <div className="mb-4 text-center">
+      <div className="mb-2 text-center">
         <span className="inline-flex items-center gap-2 text-lg font-medium text-cosmic-light">
           <Image src={getCreatureImagePath('star')} alt="" width={28} height={28} />
           をタップしよう!

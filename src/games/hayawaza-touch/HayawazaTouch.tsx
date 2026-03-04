@@ -195,7 +195,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
         <button
           onClick={handleTap}
           disabled={phase !== 'stimulus'}
-          className="w-48 h-48 rounded-full flex items-center justify-center transition-all active:scale-90"
+          className="w-full max-w-[280px] aspect-square rounded-full flex items-center justify-center transition-all active:scale-90"
           style={{
             backgroundColor: phase === 'stimulus' ? 'rgba(139,92,246,0.15)' : 'rgba(26,26,64,0.85)',
           }}

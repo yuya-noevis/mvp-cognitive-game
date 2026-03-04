@@ -154,7 +154,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
 
         {/* Stimulus area */}
         <div
-          className="relative w-64 h-64 rounded-3xl flex items-center justify-center cursor-pointer select-none"
+          className="relative w-full aspect-square max-w-[320px] rounded-3xl flex items-center justify-center cursor-pointer select-none"
           style={{ backgroundColor: phase === 'stimulus' ? (trialType === 'nogo' ? 'rgba(42,42,90,0.4)' : 'rgba(108,60,225,0.15)') : 'rgba(42,42,90,0.2)' }}
           onClick={handleTap}
         >

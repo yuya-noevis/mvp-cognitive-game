@@ -212,26 +212,26 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
 
       {/* Current card */}
       {currentCard && phase === 'stimulus' && (
-        <div className={`w-32 h-32 rounded-2xl ${COLOR_BG[currentCard.color]} flex items-center justify-center mb-8 shadow-lg mx-auto`}>
-          <span className="text-5xl text-white">
+        <div className={`w-36 h-36 rounded-2xl ${COLOR_BG[currentCard.color]} flex items-center justify-center mb-6 shadow-lg mx-auto`}>
+          <span className="text-6xl text-white">
             {SHAPE_EMOJI[currentCard.shape]}
           </span>
         </div>
       )}
 
       {/* Sort bins */}
-      <div className="flex gap-6 justify-center">
+      <div className="grid grid-cols-2 gap-4 w-full">
         {bins.map((bin, index) => (
           <button
             key={index}
             onClick={() => handleBinSelect(index)}
             disabled={phase !== 'stimulus'}
-            className={`tap-target-large w-28 h-28 rounded-2xl border-4 border-dashed flex flex-col items-center justify-center
+            className={`tap-target-large aspect-square rounded-2xl border-4 border-dashed flex flex-col items-center justify-center
               transition-all active:scale-95
               ${phase === 'stimulus' ? 'border-gray-400 hover:border-purple-500' : 'border-gray-200'}`}
           >
-            <div className={`w-12 h-12 rounded-lg ${COLOR_BG[bin.color]} flex items-center justify-center mb-1`}>
-              <span className="text-xl text-white">{SHAPE_EMOJI[bin.shape]}</span>
+            <div className={`w-16 h-16 rounded-lg ${COLOR_BG[bin.color]} flex items-center justify-center mb-1`}>
+              <span className="text-2xl text-white">{SHAPE_EMOJI[bin.shape]}</span>
             </div>
           </button>
         ))}
