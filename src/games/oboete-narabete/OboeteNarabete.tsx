@@ -175,8 +175,9 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
 
   return (
     <GameShell gameName="おぼえてならべて" session={session} maxTrials={maxTrials}>
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
       {/* Instruction */}
-      <div className="mb-4 text-center">
+      <div className="mb-3 text-center">
         <p className="text-lg font-medium" style={{ color: '#8B5CF6' }}>
           {phase === 'showing_sequence' ? 'よく みてね！' : phase === 'input' ? 'おなじ じゅんばんで タップ！' : ''}
         </p>
@@ -210,6 +211,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
         ))}
       </div>
 
+      </div>
       {feedbackCorrect !== null && (
         <TrialFeedback
           isCorrect={feedbackCorrect}

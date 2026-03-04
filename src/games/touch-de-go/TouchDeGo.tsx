@@ -130,13 +130,13 @@ export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTri
   return (
     <GameShell gameName="タッチでGO!" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full">
-        <p className="text-lg font-medium mb-4" style={{ color: 'var(--color-primary-dark)' }}>
+      <div className="flex-1 flex flex-col items-center w-full">
+        <p className="text-lg font-medium mb-2" style={{ color: 'var(--color-primary-dark)' }}>
           でてきたら すばやく タップ！
         </p>
 
         {/* Game area */}
-        <div className="relative w-full aspect-square rounded-3xl overflow-hidden"
+        <div className="relative w-full flex-1 rounded-3xl overflow-hidden"
              style={{
                background: 'var(--color-surface)',
                border: '2px solid var(--color-border-light)',

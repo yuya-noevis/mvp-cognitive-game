@@ -124,7 +124,7 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
       </div>
 
       {/* Game area */}
-      <div className="relative w-full aspect-square rounded-3xl overflow-hidden"
+      <div className="relative w-full flex-1 rounded-3xl overflow-hidden"
            style={{ background: 'rgba(42,42,90,0.3)' }}>
         {phase === 'showing' && stimulus && stimulus.items.map((item) => (
           <button

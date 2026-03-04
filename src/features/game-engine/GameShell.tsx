@@ -90,12 +90,20 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
   const building = gameId ? GAME_BUILDING_MAP[gameId] || 'hikari' : 'hikari';
   const bgGradient = BUILDING_GRADIENTS[building];
 
+  const safeAreaStyle = {
+    background: bgGradient,
+    paddingTop: 'env(safe-area-inset-top)',
+    paddingBottom: 'env(safe-area-inset-bottom)',
+    paddingLeft: 'env(safe-area-inset-left)',
+    paddingRight: 'env(safe-area-inset-right)',
+  };
+
   // Session not started yet — Pre-start screen
   if (!session.sessionId) {
     return (
       <div
-        className="flex min-h-dvh flex-col items-center justify-center px-5 relative overflow-hidden"
-        style={{ background: bgGradient }}
+        className="fixed inset-0 flex flex-col items-center justify-center px-5 overflow-hidden z-30"
+        style={safeAreaStyle}
       >
         <StarParticles count={25} />
 
@@ -128,7 +136,7 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
         : 0;
       setTimeout(() => onStageComplete(accuracy), 0);
       return (
-        <div className="flex min-h-dvh items-center justify-center" style={{ background: bgGradient }}>
+        <div className="fixed inset-0 flex items-center justify-center z-30" style={safeAreaStyle}>
           <div className="animate-gentle-pulse">
             <Mogura expression="happy" size={64} />
           </div>
@@ -138,8 +146,8 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
 
     return (
       <div
-        className="flex min-h-dvh flex-col items-center justify-center px-5 relative overflow-hidden"
-        style={{ background: bgGradient }}
+        className="fixed inset-0 flex flex-col items-center justify-center px-5 overflow-hidden z-30"
+        style={safeAreaStyle}
       >
         <StarParticles count={20} />
 
@@ -191,8 +199,8 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
   if (session.isBreakActive) {
     return (
       <div
-        className="flex min-h-dvh flex-col items-center justify-center px-5"
-        style={{ background: bgGradient }}
+        className="fixed inset-0 flex flex-col items-center justify-center px-5 z-30"
+        style={safeAreaStyle}
       >
         <div className="text-center animate-fade-in-up">
           <Mogura expression="sleepy" size={120} />
@@ -227,7 +235,7 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
 
   // Active game
   return (
-    <div className="flex min-h-dvh flex-col" style={{ background: bgGradient, paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
+    <div className="fixed inset-0 flex flex-col z-30" style={safeAreaStyle}>
       <StarParticles count={20} />
 
       {/* Header: hidden when mixed session provides its own controls */}
@@ -255,8 +263,8 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
         </header>
       )}
 
-      {/* Game content — full width, vertically centered in available space */}
-      <main className={`flex-1 flex flex-col justify-center px-2 relative z-10 ${sessionCtx ? 'pt-10' : ''}`}>
+      {/* Game content — full viewport width, fills remaining height */}
+      <main className={`flex-1 flex flex-col px-2 relative z-10 overflow-y-auto ${sessionCtx ? 'pt-10' : ''}`}>
         {children}
       </main>
     </div>

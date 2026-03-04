@@ -132,7 +132,7 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
   return (
     <GameShell gameName="おぼえてマッチ" gameId="oboete-match" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full">
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
         {/* Sample display */}
         {phase === 'sample' && samplePattern && (
           <div className="text-center mb-4">

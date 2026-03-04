@@ -187,7 +187,7 @@ export default function TsumitageTower({ ageGroup, stageMode, maxTrials: stageMo
   return (
     <GameShell gameName="つみあげタワー" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full">
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
         {/* Goal display */}
         <div className="mb-4 text-center">
           <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-muted)' }}>

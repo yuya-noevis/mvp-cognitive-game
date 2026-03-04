@@ -170,7 +170,7 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
   return (
     <GameShell gameName="かくれんぼカタチ" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full">
+      <div className="flex-1 flex flex-col items-center w-full">
         {/* Target preview */}
         {phase === 'target_preview' && targetShape && (
           <div className="text-center mb-4">
@@ -201,7 +201,7 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
 
         {/* Search area */}
         {(phase === 'search' || phase === 'target_preview') && (
-          <div className="relative w-full aspect-square rounded-3xl overflow-hidden"
+          <div className="relative w-full flex-1 rounded-3xl overflow-hidden"
                style={{ background: 'var(--color-surface)' }}>
             {phase === 'search' && items.map(item => (
               <button

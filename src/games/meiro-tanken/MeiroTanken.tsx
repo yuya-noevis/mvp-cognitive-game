@@ -225,7 +225,7 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
   return (
     <GameShell gameName="めいろたんけん" session={session}
                stageMode={stageMode} maxTrials={effectiveMaxTrials} onStageComplete={onStageComplete}>
-      <div className="flex flex-col items-center w-full">
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
         <p className="text-lg font-medium mb-3" style={{ color: 'var(--color-primary-dark)' }}>
           ゴールまで すすもう！
         </p>

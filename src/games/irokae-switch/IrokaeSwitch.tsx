@@ -188,8 +188,9 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
 
   return (
     <GameShell gameName="いろかえスイッチ" session={session} maxTrials={maxTrials}>
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
       {/* Rule indicator */}
-      <div className={`mb-4 text-center p-3 rounded-xl`}
+      <div className={`mb-4 text-center p-3 rounded-xl w-full`}
         style={{ background: currentRule === 'color' ? 'rgba(108,60,225,0.15)' : 'rgba(78,205,196,0.15)' }}>
         <p className={`font-bold ${ruleIndicatorSize}`}
           style={{ color: currentRule === 'color' ? '#8B5CF6' : '#4ECDC4' }}>
@@ -237,6 +238,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
         ))}
       </div>
 
+      </div>
       {feedbackCorrect !== null && (
         <TrialFeedback
           isCorrect={feedbackCorrect}

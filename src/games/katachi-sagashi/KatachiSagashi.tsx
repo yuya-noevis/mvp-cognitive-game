@@ -123,6 +123,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
 
   return (
     <GameShell gameName="かたちさがし" session={session} maxTrials={maxTrials}>
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
       {/* Target display */}
       {target && (
         <div className="mb-4 text-center">
@@ -161,6 +162,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
         ))}
       </div>
 
+      </div>
       {feedbackCorrect !== null && (
         <TrialFeedback
           isCorrect={feedbackCorrect}
