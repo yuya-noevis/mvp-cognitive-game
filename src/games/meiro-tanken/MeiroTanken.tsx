@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { FlagIcon } from '@/components/icons';
 import { meiroTankenConfig } from './config';
@@ -94,6 +95,7 @@ function generateMaze(size: number): CellType[][] {
 
 export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: MeiroTankenProps) {
   const session = useGameSession({ gameConfig: meiroTankenConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [maze, setMaze] = useState<CellType[][]>([]);
@@ -109,7 +111,7 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
   const mazeSize = (session.difficulty.maze_size as number) || 3;
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -134,7 +136,7 @@ export default function MeiroTanken({ ageGroup, stageMode, maxTrials: stageModeT
     mazeTimeoutRef.current = setTimeout(() => {
       handleMazeTimeout(newMaze, mazeSize);
     }, 30_000);
-  }, [session, effectiveMaxTrials, mazeSize]);
+  }, [session, effectiveMaxTrials, mazeSize, isMixedSession]);
 
   // めいろタイムアウト時のニアミス判定
   const handleMazeTimeout = useCallback((currentMaze: CellType[][], currentMazeSize: number) => {

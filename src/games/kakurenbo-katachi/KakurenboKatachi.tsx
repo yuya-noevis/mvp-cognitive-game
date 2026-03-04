@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { kakurenboKatachiConfig } from './config';
 import { nowMs, shuffle, randomInt } from '@/lib/utils';
@@ -45,6 +46,7 @@ function getSizeScale(targetSize: string): number {
 
 export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: KakurenboKatachiProps) {
   const session = useGameSession({ gameConfig: kakurenboKatachiConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -60,7 +62,7 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
   const colorSimilarity = (session.difficulty.color_similarity as string) || 'low';
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -128,7 +130,7 @@ export default function KakurenboKatachi({ ageGroup, stageMode, maxTrials: stage
 
     // After preview, switch to search
     previewTimerRef.current = setTimeout(() => setPhase('search'), 2000);
-  }, [session, effectiveMaxTrials, distractorCount, targetSize, colorSimilarity]);
+  }, [session, effectiveMaxTrials, distractorCount, targetSize, colorSimilarity, isMixedSession]);
 
   const handleItemTap = useCallback((item: ShapeItem) => {
     if (phase !== 'search') return;

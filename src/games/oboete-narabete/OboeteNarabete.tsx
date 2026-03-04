@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { GemIcon } from '@/components/icons';
 import { oboeteNarabeteConfig } from './config';
@@ -32,6 +33,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
     gameConfig: oboeteNarabeteConfig,
     ageGroup,
   });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [gridDim, setGridDim] = useState(3);
@@ -88,7 +90,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
 
   // Start next trial
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= maxTrials) {
+    if (!isMixedSession && session.totalTrials >= maxTrials) {
       session.endSession('completed');
       return;
     }
@@ -106,7 +108,7 @@ export default function OboeteNarabete({ ageGroup, maxTrials: maxTrialsProp }: O
     session.presentStimulus();
 
     showSequence(seq, displaySpeed);
-  }, [session, maxTrials, gridSize, seqLength, generateSequence, showSequence, displaySpeed]);
+  }, [session, maxTrials, gridSize, seqLength, generateSequence, showSequence, displaySpeed, isMixedSession]);
 
   // Handle cell tap during input phase
   const handleCellTap = useCallback((cellIndex: number) => {

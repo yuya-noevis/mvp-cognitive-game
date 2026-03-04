@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { ColorDotIcon } from '@/components/icons';
 import { tsumitageTowerConfig } from './config';
@@ -60,6 +61,7 @@ function generatePuzzle(minMoves: number, ballCount: number): Puzzle {
 
 export default function TsumitageTower({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: TsumitageTowerProps) {
   const session = useGameSession({ gameConfig: tsumitageTowerConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [pegs, setPegs] = useState<PegState>([[], [], []]);
@@ -82,7 +84,7 @@ export default function TsumitageTower({ ageGroup, stageMode, maxTrials: stageMo
   }, []);
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -101,7 +103,7 @@ export default function TsumitageTower({ ageGroup, stageMode, maxTrials: stageMo
       { min_moves: puzzle.minMoves },
     );
     session.presentStimulus();
-  }, [session, effectiveMaxTrials, diffMinMoves, ballCount]);
+  }, [session, effectiveMaxTrials, diffMinMoves, ballCount, isMixedSession]);
 
   const handlePegTap = useCallback((pegIndex: number) => {
     if (phase !== 'playing') return;

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { oboeteMatchConfig } from './config';
 import { nowMs, shuffle, randomInt } from '@/lib/utils';
@@ -40,6 +41,7 @@ interface Choice {
 
 export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: OboeteMatchProps) {
   const session = useGameSession({ gameConfig: oboeteMatchConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [samplePattern, setSamplePattern] = useState<typeof PATTERNS[0] | null>(null);
@@ -56,7 +58,7 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
   }, []);
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -95,7 +97,7 @@ export default function OboeteMatch({ ageGroup, stageMode, maxTrials: stageModeT
         setPhase('choice');
       }
     }, 2000);
-  }, [session, effectiveMaxTrials, choiceCount, delayMs]);
+  }, [session, effectiveMaxTrials, choiceCount, delayMs, isMixedSession]);
 
   const handleSelect = useCallback((choice: Choice) => {
     if (phase !== 'choice') return;

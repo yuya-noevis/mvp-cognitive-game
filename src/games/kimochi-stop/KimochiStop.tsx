@@ -5,6 +5,7 @@ import type { FC } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { KimochiYomitoriIcons, type IconProps } from '@/components/icons';
 import { kimochiStopConfig } from './config';
@@ -34,6 +35,7 @@ const FACE_LABELS: Record<string, string> = {
 
 export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: KimochiStopProps) {
   const session = useGameSession({ gameConfig: kimochiStopConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [blockRule, setBlockRule] = useState<BlockRule>('happy_go');
@@ -60,7 +62,7 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
   }, []);
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -80,7 +82,7 @@ export default function KimochiStop({ ageGroup, stageMode, maxTrials: stageModeT
 
     startStimulus(blockRule);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, effectiveMaxTrials, trialInBlock, blockSwitchFreq, blockRule]);
+  }, [session, effectiveMaxTrials, trialInBlock, blockSwitchFreq, blockRule, isMixedSession]);
 
   const handleTimeout = useCallback((face: 'happy' | 'angry', rule: BlockRule) => {
     setResponded(true);

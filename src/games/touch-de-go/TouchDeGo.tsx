@@ -5,6 +5,7 @@ import type { FC } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { StarIcon, TargetIcon, ColorDotIcon, type IconProps } from '@/components/icons';
 import { touchDeGoConfig } from './config';
@@ -33,6 +34,7 @@ const TARGET_VISUALS: TargetVisual[] = [
 
 export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: TouchDeGoProps) {
   const session = useGameSession({ gameConfig: touchDeGoConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [targetX, setTargetX] = useState(50);
@@ -51,7 +53,7 @@ export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTri
   }, []);
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -81,7 +83,7 @@ export default function TouchDeGo({ ageGroup, stageMode, maxTrials: stageModeTri
         handleMiss();
       }, timeLimit);
     }, delay);
-  }, [session, effectiveMaxTrials, targetSize, timeLimit]);
+  }, [session, effectiveMaxTrials, targetSize, timeLimit, isMixedSession]);
 
   const handleTargetTap = useCallback(() => {
     if (phase !== 'target') return;

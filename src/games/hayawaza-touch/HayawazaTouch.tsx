@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { StarIcon } from '@/components/icons';
 import { hayawazaTouchConfig } from './config';
@@ -34,6 +35,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
     gameConfig: hayawazaTouchConfig,
     ageGroup,
   });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [isTarget, setIsTarget] = useState(true);
@@ -51,7 +53,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
   }, []);
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= maxTrials) {
+    if (!isMixedSession && session.totalTrials >= maxTrials) {
       session.endSession('completed');
       return;
     }
@@ -80,7 +82,7 @@ export default function HayawazaTouch({ ageGroup, maxTrials: maxTrialsProp }: Ha
       }, responseWindow);
     }, isi);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, maxTrials, mode, responseWindow]);
+  }, [session, maxTrials, mode, responseWindow, isMixedSession]);
 
   const handleTap = useCallback(() => {
     if (phase !== 'stimulus') return;

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { matteStopConfig } from './config';
 import { nowMs, randomInt } from '@/lib/utils';
@@ -26,6 +27,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
     gameConfig: matteStopConfig,
     ageGroup,
   });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [trialType, setTrialType] = useState<TrialType>('go');
@@ -48,7 +50,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
 
   // Start next trial
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= maxTrials) {
+    if (!isMixedSession && session.totalTrials >= maxTrials) {
       session.endSession('completed');
       return;
     }
@@ -80,7 +82,7 @@ export default function MatteStop({ ageGroup, maxTrials: maxTrialsProp }: MatteS
       }, responseWindow);
     }, randomInt(500, 1000)); // Random fixation duration
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, maxTrials, nogoRatio, responseWindow, responded]);
+  }, [session, maxTrials, nogoRatio, responseWindow, responded, isMixedSession]);
 
   // Handle tap response
   const handleTap = useCallback(() => {

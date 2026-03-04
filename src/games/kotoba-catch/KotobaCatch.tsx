@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { VocabIcon } from '@/components/icons';
 import { kotobaCatchConfig } from './config';
@@ -22,6 +23,7 @@ type Phase = 'ready' | 'listening' | 'choosing' | 'feedback';
 
 export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: KotobaCatchProps) {
   const session = useGameSession({ gameConfig: kotobaCatchConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [trial, setTrial] = useState<VocabTrial | null>(null);
@@ -33,7 +35,7 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
   const choiceCount = (session.difficulty.choice_count as number) || 2;
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -53,7 +55,7 @@ export default function KotobaCatch({ ageGroup, stageMode, maxTrials: stageModeT
 
     // After a brief delay, allow choosing
     setTimeout(() => setPhase('choosing'), 1500);
-  }, [session, effectiveMaxTrials, wordCategory, choiceCount]);
+  }, [session, effectiveMaxTrials, wordCategory, choiceCount, isMixedSession]);
 
   const handleReplay = useCallback(() => {
     if (trial) speakWord(trial.targetWord);

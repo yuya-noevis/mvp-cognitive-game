@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { patternPuzzleConfig } from './config';
 import { nowMs, shuffle, shuffleWithBiasGuard, randomInt } from '@/lib/utils';
@@ -129,6 +130,7 @@ function generatePatternTrial(patternType: string, choiceCount: number, recentPo
 
 export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: PatternPuzzleProps) {
   const session = useGameSession({ gameConfig: patternPuzzleConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [trial, setTrial] = useState<PatternTrial | null>(null);
@@ -141,7 +143,7 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
   const choiceCount = (session.difficulty.choice_count as number) || 3;
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -155,7 +157,7 @@ export default function PatternPuzzle({ ageGroup, stageMode, maxTrials: stageMod
       { correct: newTrial.correctAnswer },
     );
     session.presentStimulus();
-  }, [session, effectiveMaxTrials, patternType, choiceCount]);
+  }, [session, effectiveMaxTrials, patternType, choiceCount, isMixedSession]);
 
   const handleSelect = useCallback((choice: { id: string; shape: string; color: string; isCorrect: boolean }) => {
     if (phase !== 'showing' || !trial) return;

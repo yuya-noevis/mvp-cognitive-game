@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { irokaeSwitchConfig } from './config';
 import { nowMs, randomInt } from '@/lib/utils';
@@ -45,6 +46,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
     gameConfig: irokaeSwitchConfig,
     ageGroup,
   });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [currentRule, setCurrentRule] = useState<RuleType>('color');
@@ -82,7 +84,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
   }, [bins]);
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= maxTrials) {
+    if (!isMixedSession && session.totalTrials >= maxTrials) {
       session.endSession('completed');
       return;
     }
@@ -106,7 +108,7 @@ export default function IrokaeSwitch({ ageGroup, maxTrials: maxTrialsProp }: Iro
 
     startStimulus(currentRule);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, maxTrials, trialInPhase, switchFreq, currentRule]);
+  }, [session, maxTrials, trialInPhase, switchFreq, currentRule, isMixedSession]);
 
   const startStimulus = useCallback((rule: RuleType) => {
     const card = generateCard();

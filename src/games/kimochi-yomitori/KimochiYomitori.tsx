@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { KimochiYomitoriIcons } from '@/components/icons';
 import { kimochiYomitoriConfig } from './config';
@@ -80,6 +81,7 @@ function generateEmotionTrial(
 
 export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageModeTrials, onStageComplete }: KimochiYomitoriProps) {
   const session = useGameSession({ gameConfig: kimochiYomitoriConfig, ageGroup });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [targetEmotion, setTargetEmotion] = useState<Emotion | null>(null);
@@ -92,7 +94,7 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
   const emotionDistance = (session.difficulty.emotion_distance as string) || 'far';
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= effectiveMaxTrials) {
+    if (!isMixedSession && session.totalTrials >= effectiveMaxTrials) {
       session.endSession('completed');
       return;
     }
@@ -107,7 +109,7 @@ export default function KimochiYomitori({ ageGroup, stageMode, maxTrials: stageM
       { correct_emotion: target.id },
     );
     session.presentStimulus();
-  }, [session, effectiveMaxTrials, choiceCount, emotionDistance]);
+  }, [session, effectiveMaxTrials, choiceCount, emotionDistance, isMixedSession]);
 
   const handleSelect = useCallback((choice: typeof choices[0]) => {
     if (phase !== 'showing') return;

@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { katachiSagashiConfig } from './config';
 import { nowMs, shuffle, shuffleWithBiasGuard, randomInt } from '@/lib/utils';
@@ -37,6 +38,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
     gameConfig: katachiSagashiConfig,
     ageGroup,
   });
+  const isMixedSession = !!useSessionContext();
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [target, setTarget] = useState<typeof SHAPES[0] | null>(null);
@@ -75,7 +77,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
   }, [choiceCount, rotationDeg]);
 
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= maxTrials) {
+    if (!isMixedSession && session.totalTrials >= maxTrials) {
       session.endSession('completed');
       return;
     }
@@ -90,7 +92,7 @@ export default function KatachiSagashi({ ageGroup, maxTrials: maxTrialsProp }: K
       { target_id: newChoices.find(c => c.isTarget)!.id },
     );
     session.presentStimulus();
-  }, [session, maxTrials, generateTrial, rotationDeg]);
+  }, [session, maxTrials, generateTrial, rotationDeg, isMixedSession]);
 
   const handleSelect = useCallback((choice: ShapeChoice) => {
     if (phase !== 'showing') return;
