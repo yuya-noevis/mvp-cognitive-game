@@ -89,7 +89,10 @@ export default function LoginPage() {
         }
       }
 
-      window.location.href = '/';
+      // Use client-side navigation (not window.location.href) so that
+      // useChildProfile's useState initializer runs on the CLIENT where
+      // localStorage is available — matching the onboarding flow.
+      router.push('/');
     } catch {
       setError('ログイン中にエラーが発生しました');
     } finally {
