@@ -60,38 +60,48 @@ export default function LoginPage() {
       // Fetch child profile from Supabase and cache before redirect
       clearChildCache();
       const userId = authData.user?.id;
-      console.log('[login] signIn success, userId:', userId);
 
       if (userId) {
-        try {
-          const { data, error: fetchErr } = await supabase
-            .from('children')
-            .select('id, anon_child_id, display_name, age_group, settings, consent_flags')
-            .eq('parent_user_id', userId)
-            .single();
+        // Retry up to 2 times — the auth session might not be immediately
+        // visible to PostgREST right after signInWithPassword.
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            // Use .limit(1) instead of .single() to avoid PGRST116 error on 0 rows
+            const { data: rows, error: fetchErr } = await supabase
+              .from('children')
+              .select('id, anon_child_id, display_name, age_group, settings, consent_flags')
+              .eq('parent_user_id', userId)
+              .limit(1);
 
-          console.log('[login] children query result:', { data, error: fetchErr?.message });
+            if (fetchErr) {
+              console.warn(`[login] children query attempt ${attempt} error:`, fetchErr.message);
+              if (attempt === 0) { await new Promise(r => setTimeout(r, 500)); continue; }
+              break;
+            }
 
-          if (data) {
-            setLocalChildProfile({
-              id: data.id,
-              anonChildId: data.anon_child_id,
-              displayName: data.display_name || 'おともだち',
-              ageGroup: data.age_group,
-              avatarId: 'avatar_01',
-              settings: data.settings || {},
-              consentFlags: data.consent_flags || {},
-            });
-            console.log('[login] saved to localStorage, displayName:', data.display_name);
+            const child = rows?.[0];
+            if (child) {
+              setLocalChildProfile({
+                id: child.id,
+                anonChildId: child.anon_child_id,
+                displayName: child.display_name ?? 'おともだち',
+                ageGroup: child.age_group,
+                avatarId: 'avatar_01',
+                settings: child.settings || {},
+                consentFlags: child.consent_flags || {},
+              });
+              break; // success
+            } else {
+              console.warn(`[login] no child record found for userId: ${userId} (attempt ${attempt})`);
+              if (attempt === 0) { await new Promise(r => setTimeout(r, 500)); continue; }
+            }
+          } catch (e) {
+            console.warn(`[login] profile fetch attempt ${attempt} failed:`, e);
+            if (attempt === 0) { await new Promise(r => setTimeout(r, 500)); continue; }
           }
-        } catch (e) {
-          console.warn('[login] profile fetch failed:', e);
         }
       }
 
-      // Use client-side navigation (not window.location.href) so that
-      // useChildProfile's useState initializer runs on the CLIENT where
-      // localStorage is available — matching the onboarding flow.
       router.push('/');
     } catch {
       setError('ログイン中にエラーが発生しました');
