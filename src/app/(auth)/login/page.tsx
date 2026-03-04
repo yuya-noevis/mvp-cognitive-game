@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Mogura from '@/components/mascot/Mogura';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase/client';
-import { getLocalChildProfile, clearLocalProfile } from '@/lib/local-profile';
+import { getLocalChildProfile, setLocalChildProfile, clearLocalProfile } from '@/lib/local-profile';
 import { clearChildCache } from '@/hooks/useChildProfile';
 
 export default function LoginPage() {
@@ -51,11 +51,44 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
         setError('メールアドレスまたはパスワードが正しくありません');
         return;
       }
+
+      // Fetch child profile from Supabase and cache before redirect
+      clearChildCache();
+      const userId = authData.user?.id;
+      console.log('[login] signIn success, userId:', userId);
+
+      if (userId) {
+        try {
+          const { data, error: fetchErr } = await supabase
+            .from('children')
+            .select('id, anon_child_id, display_name, age_group, settings, consent_flags')
+            .eq('parent_user_id', userId)
+            .single();
+
+          console.log('[login] children query result:', { data, error: fetchErr?.message });
+
+          if (data) {
+            setLocalChildProfile({
+              id: data.id,
+              anonChildId: data.anon_child_id,
+              displayName: data.display_name || 'おともだち',
+              ageGroup: data.age_group,
+              avatarId: 'avatar_01',
+              settings: data.settings || {},
+              consentFlags: data.consent_flags || {},
+            });
+            console.log('[login] saved to localStorage, displayName:', data.display_name);
+          }
+        } catch (e) {
+          console.warn('[login] profile fetch failed:', e);
+        }
+      }
+
       window.location.href = '/';
     } catch {
       setError('ログイン中にエラーが発生しました');

@@ -7,7 +7,8 @@ import { AccessibilityIcon, LockIcon, ClipboardIcon, ExportIcon, TrashIcon } fro
 import { StarField } from '@/components/map/StarField';
 import { CosmicButton } from '@/components/ui/CosmicButton';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase/client';
-import { getLocalChildProfile, getLocalChildSettings, setLocalChildProfile, setLocalChildSettings } from '@/lib/local-profile';
+import { getLocalChildProfile, getLocalChildSettings, setLocalChildProfile, setLocalChildSettings, clearLocalProfile } from '@/lib/local-profile';
+import { clearChildCache } from '@/hooks/useChildProfile';
 import { SensorySettingsSection } from '@/features/sensory/SensorySettingsSection';
 
 export default function SettingsPage() {
@@ -382,6 +383,26 @@ export default function SettingsPage() {
         >
           {saved ? '保存しました' : '設定を保存'}
         </CosmicButton>
+
+        {/* Logout button */}
+        <div className="pt-4 pb-8">
+          <button
+            type="button"
+            onClick={async () => {
+              if (!window.confirm('ログアウトしますか？')) return;
+              clearChildCache();
+              clearLocalProfile();
+              if (isSupabaseEnabled) {
+                await supabase.auth.signOut();
+              }
+              window.location.href = '/login';
+            }}
+            className="w-full py-3 text-sm font-medium rounded-xl transition-colors active:scale-95"
+            style={{ color: '#FF6B6B', background: 'rgba(255,107,107,0.08)' }}
+          >
+            ログアウト
+          </button>
+        </div>
       </main>
     </div>
   );

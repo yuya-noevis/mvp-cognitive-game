@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase/client';
 import type { AgeGroup } from '@/types';
-import { getLocalChildProfile, setLocalChildProfile } from '@/lib/local-profile';
+import { getLocalChildProfile, setLocalChildProfile, type LocalChildProfile } from '@/lib/local-profile';
 
 export interface ChildProfile {
   id: string;
@@ -21,6 +21,18 @@ interface UseChildProfileResult {
   error: string | null;
 }
 
+function localToProfile(local: LocalChildProfile): ChildProfile {
+  return {
+    id: local.id,
+    anonChildId: local.anonChildId,
+    displayName: local.displayName,
+    ageGroup: local.ageGroup,
+    avatarId: local.avatarId || 'avatar_01',
+    settings: local.settings || {},
+    consentFlags: local.consentFlags || {},
+  };
+}
+
 let cachedChild: ChildProfile | null = null;
 
 export function clearChildCache() {
@@ -28,15 +40,30 @@ export function clearChildCache() {
 }
 
 export function useChildProfile(): UseChildProfileResult {
-  const [child, setChild] = useState<ChildProfile | null>(cachedChild);
-  const [loading, setLoading] = useState(!cachedChild);
+  // Synchronous hydration: cachedChild → localStorage → null
+  // This ensures displayName is available on first render (no flash of fallback)
+  const initialChild = cachedChild ?? (() => {
+    const local = getLocalChildProfile();
+    if (local) {
+      const profile = localToProfile(local);
+      cachedChild = profile;
+      return profile;
+    }
+    return null;
+  })();
+
+  const [child, setChild] = useState<ChildProfile | null>(initialChild);
+  const [loading, setLoading] = useState(!initialChild);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (cachedChild) {
-      setChild(cachedChild);
-      setLoading(false);
-      return;
+    if (cachedChild && child) {
+      // Already have data from synchronous hydration; still refresh from Supabase in background
+      if (!isSupabaseEnabled) {
+        setLoading(false);
+        return;
+      }
+      // Fall through to fetchChild to refresh from Supabase
     }
 
     async function fetchChild() {
@@ -44,41 +71,31 @@ export function useChildProfile(): UseChildProfileResult {
         // Local/demo mode
         if (!isSupabaseEnabled) {
           const local = getLocalChildProfile();
+          console.log('[useChildProfile] local mode, profile:', local?.displayName ?? 'null');
           if (!local) {
             setError('Child profile not found');
             return;
           }
-          const profile: ChildProfile = {
-            id: local.id,
-            anonChildId: local.anonChildId,
-            displayName: local.displayName,
-            ageGroup: local.ageGroup,
-            avatarId: local.avatarId || 'avatar_01',
-            settings: local.settings || {},
-            consentFlags: local.consentFlags || {},
-          };
+          const profile = localToProfile(local);
           cachedChild = profile;
           setChild(profile);
           return;
         }
 
+        // Supabase mode — try localStorage first for instant display
+        const local = getLocalChildProfile();
+        console.log('[useChildProfile] supabase mode, localStorage:', local?.displayName ?? 'null');
+
         // Supabase mode
         const { data: userData } = await supabase.auth.getUser();
+        console.log('[useChildProfile] getUser:', userData.user?.id ?? 'null');
         if (!userData.user) {
-          // Auth failed — try localStorage fallback
-          const local = getLocalChildProfile();
+          // Auth failed — use localStorage if available
           if (local) {
-            const profile: ChildProfile = {
-              id: local.id,
-              anonChildId: local.anonChildId,
-              displayName: local.displayName,
-              ageGroup: local.ageGroup,
-              avatarId: local.avatarId || 'avatar_01',
-              settings: local.settings || {},
-              consentFlags: local.consentFlags || {},
-            };
+            const profile = localToProfile(local);
             cachedChild = profile;
             setChild(profile);
+            console.log('[useChildProfile] auth failed, using localStorage:', profile.displayName);
             return;
           }
           setError('Not authenticated');
@@ -93,19 +110,15 @@ export function useChildProfile(): UseChildProfileResult {
           .eq('parent_user_id', userData.user.id)
           .single();
 
+        console.log('[useChildProfile] children query:', {
+          displayName: data?.display_name,
+          error: fetchError?.message,
+        });
+
         if (fetchError || !data) {
           // Supabase fetch failed — try localStorage fallback
-          const local = getLocalChildProfile();
           if (local) {
-            const profile: ChildProfile = {
-              id: local.id,
-              anonChildId: local.anonChildId,
-              displayName: local.displayName,
-              ageGroup: local.ageGroup,
-              avatarId: local.avatarId || 'avatar_01',
-              settings: local.settings || {},
-              consentFlags: local.consentFlags || {},
-            };
+            const profile = localToProfile(local);
             cachedChild = profile;
             setChild(profile);
             return;
@@ -138,19 +151,12 @@ export function useChildProfile(): UseChildProfileResult {
 
         cachedChild = profile;
         setChild(profile);
-      } catch {
+      } catch (e) {
+        console.warn('[useChildProfile] fetch error:', e);
         // Network error — try localStorage fallback
         const local = getLocalChildProfile();
         if (local) {
-          const profile: ChildProfile = {
-            id: local.id,
-            anonChildId: local.anonChildId,
-            displayName: local.displayName,
-            ageGroup: local.ageGroup,
-            avatarId: local.avatarId || 'avatar_01',
-            settings: local.settings || {},
-            consentFlags: local.consentFlags || {},
-          };
+          const profile = localToProfile(local);
           cachedChild = profile;
           setChild(profile);
           return;
