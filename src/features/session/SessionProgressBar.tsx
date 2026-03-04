@@ -118,6 +118,8 @@ interface MixedSessionProgressBarProps {
   };
   currentGameIndex: number;
   sessionType?: SessionType;
+  /** Exact integer count of scored trials completed (avoids float rounding) */
+  scoredTrialsCompleted?: number;
 }
 
 const SESSION_TYPE_BADGE: Partial<Record<SessionType, { label: string; color: string }>> = {
@@ -125,9 +127,10 @@ const SESSION_TYPE_BADGE: Partial<Record<SessionType, { label: string; color: st
   review: { label: 'ボスせん!', color: '#A78BFA' },
 };
 
-function MixedDotIndicator({ progress, plan, isWarmup }: MixedSessionProgressBarProps) {
+function MixedDotIndicator({ progress, plan, isWarmup, scoredTrialsCompleted }: MixedSessionProgressBarProps) {
   const scoredTotal = plan.games.reduce((sum, g) => sum + g.trialCount, 0);
-  const completedTrials = Math.round(progress * scoredTotal);
+  // Use exact integer count when available; fall back to float derivation
+  const completedTrials = scoredTrialsCompleted ?? Math.round(progress * scoredTotal);
 
   // Pre-calculate per-game offsets
   const gameOffsets: number[] = [];
@@ -209,7 +212,7 @@ function MixedDotIndicator({ progress, plan, isWarmup }: MixedSessionProgressBar
   );
 }
 
-function MixedBarIndicator({ progress, isWarmup, plan, currentGameIndex }: MixedSessionProgressBarProps) {
+function MixedBarIndicator({ progress, isWarmup, plan, currentGameIndex, scoredTrialsCompleted }: MixedSessionProgressBarProps) {
   const scoredTotal = plan.games.reduce((sum, g) => sum + g.trialCount, 0);
 
   // Calculate segment boundaries as fractions
@@ -267,7 +270,7 @@ function MixedBarIndicator({ progress, isWarmup, plan, currentGameIndex }: Mixed
         />
       </div>
       <span className="text-xs tabular-nums whitespace-nowrap" style={{ color: '#B8B8D0' }}>
-        {Math.round(progress * scoredTotal)}/{scoredTotal}
+        {scoredTrialsCompleted ?? Math.round(progress * scoredTotal)}/{scoredTotal}
       </span>
     </div>
   );

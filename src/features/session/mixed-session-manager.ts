@@ -77,6 +77,7 @@ export class MixedSessionManager {
     isSessionComplete: boolean;
     nextGameId?: IntegratedGameId;
     progress: number;
+    scoredTrialsCompleted: number;
   } {
     const prevTotal = this.totalTrialsCompleted;
 
@@ -99,6 +100,7 @@ export class MixedSessionManager {
         isGameSwitch: false,
         isSessionComplete: false,
         progress: 0,
+        scoredTrialsCompleted: 0,
       };
     }
 
@@ -156,6 +158,7 @@ export class MixedSessionManager {
           isGameSwitch: false,
           isSessionComplete: true,
           progress: 1,
+          scoredTrialsCompleted: this.totalTrialsCompleted,
         };
       }
 
@@ -173,6 +176,7 @@ export class MixedSessionManager {
         isSessionComplete: false,
         nextGameId: this.getCurrentGameId(),
         progress,
+        scoredTrialsCompleted: this.totalTrialsCompleted,
       };
     }
 
@@ -180,6 +184,7 @@ export class MixedSessionManager {
       isGameSwitch: false,
       isSessionComplete: false,
       progress,
+      scoredTrialsCompleted: this.totalTrialsCompleted,
     };
   }
 

@@ -69,6 +69,7 @@ export default function MixedSessionPlayPage() {
   const [sessionPlan, setSessionPlan] = useState<MixedSessionPlan | null>(null);
   const [currentGameId, setCurrentGameId] = useState<IntegratedGameId | null>(null);
   const [sessionProgress, setSessionProgress] = useState(0);
+  const [scoredTrialsCompleted, setScoredTrialsCompleted] = useState(0);
   const [isWarmup, setIsWarmup] = useState(true);
   const [showStartBanner, setShowStartBanner] = useState(false);
   const [gameKey, setGameKey] = useState(0);
@@ -206,6 +207,7 @@ export default function MixedSessionPlayPage() {
     });
 
     setSessionProgress(result.progress);
+    setScoredTrialsCompleted(result.scoredTrialsCompleted);
     setIsWarmup(manager.isWarmup());
 
     // Warmup ended → apply warmup adjustment (v3 Section 9)
@@ -413,6 +415,7 @@ export default function MixedSessionPlayPage() {
                 plan={sessionPlan}
                 currentGameIndex={manager?.getCurrentGameIndex() ?? 0}
                 sessionType={sessionType}
+                scoredTrialsCompleted={scoredTrialsCompleted}
               />
             )}
           </div>

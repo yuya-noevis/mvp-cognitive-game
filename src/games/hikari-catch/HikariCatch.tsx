@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { GameShell } from '@/features/game-engine/GameShell';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
+import { useSessionContext } from '@/features/session/SessionContext';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
 import { hikariCatchConfig } from './config';
 import { generateHikariStimulus, getCreatureImagePath, type HikariStimulus, type HikariItem } from './stimuli';
@@ -23,6 +24,9 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
     gameConfig: hikariCatchConfig,
     ageGroup,
   });
+  // In mixed session, the session manager controls game termination
+  const sessionCtx = useSessionContext();
+  const isMixedSession = !!sessionCtx;
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [stimulus, setStimulus] = useState<HikariStimulus | null>(null);
@@ -35,7 +39,8 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
 
   // Start next trial
   const nextTrial = useCallback(() => {
-    if (session.totalTrials >= maxTrials) {
+    // In mixed session, the session manager controls termination — skip self-check
+    if (!isMixedSession && session.totalTrials >= maxTrials) {
       session.endSession('completed');
       return;
     }
@@ -55,7 +60,7 @@ export default function HikariCatch({ ageGroup, maxTrials: maxTrialsProp }: Hika
     hideTimerRef.current = setTimeout(() => {
       // Items remain visible but this marks end of "fresh" display
     }, displayDuration);
-  }, [session, maxTrials, displayDuration]);
+  }, [session, maxTrials, displayDuration, isMixedSession]);
 
   // Handle tap on item
   const handleTap = useCallback((item: HikariItem) => {
