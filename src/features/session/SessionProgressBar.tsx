@@ -125,51 +125,86 @@ const SESSION_TYPE_BADGE: Partial<Record<SessionType, { label: string; color: st
   review: { label: 'ボスせん!', color: '#A78BFA' },
 };
 
-function MixedDotIndicator({ plan, currentGameIndex, isWarmup }: MixedSessionProgressBarProps) {
-  const totalDots = plan.games.reduce((sum, g) => sum + g.trialCount, 0);
-  let dotIndex = 0;
+function MixedDotIndicator({ progress, plan, isWarmup }: MixedSessionProgressBarProps) {
+  const scoredTotal = plan.games.reduce((sum, g) => sum + g.trialCount, 0);
+  const completedTrials = Math.round(progress * scoredTotal);
+
+  // Pre-calculate per-game offsets
+  const gameOffsets: number[] = [];
+  let offset = 0;
+  for (const game of plan.games) {
+    gameOffsets.push(offset);
+    offset += game.trialCount;
+  }
 
   return (
-    <div className="flex items-center justify-center gap-2 px-4 py-2">
+    <div className="flex items-center justify-center px-4 py-2 gap-2">
       <AnimatePresence>
         {isWarmup && (
           <motion.span
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
-            className="text-xs mr-1"
+            className="text-xs"
             style={{ color: 'rgba(184, 184, 208, 0.6)' }}
           >
             れんしゅう
           </motion.span>
         )}
       </AnimatePresence>
-      <div className="flex gap-1.5">
+
+      <div className="flex items-center">
         {plan.games.map((game, gi) => {
-          const dots = [];
-          for (let t = 0; t < game.trialCount; t++) {
-            const idx = dotIndex++;
-            const isCompleted = gi < currentGameIndex || (gi === currentGameIndex && t < 0);
-            const isCurrent = gi === currentGameIndex;
-            dots.push(
-              <motion.div
-                key={idx}
-                className="w-3 h-3 rounded-full"
-                style={{
-                  background: isCompleted
-                    ? SEGMENT_COLORS[gi % SEGMENT_COLORS.length]
-                    : isCurrent
-                      ? 'rgba(255, 255, 255, 0.25)'
-                      : 'rgba(255, 255, 255, 0.12)',
-                }}
-                animate={isCurrent && t === 0 ? { scale: [1, 1.3, 1] } : {}}
-                transition={{ duration: 0.3 }}
-              />,
-            );
-          }
-          return dots;
+          const color = SEGMENT_COLORS[gi % SEGMENT_COLORS.length];
+          const gameStart = gameOffsets[gi];
+
+          return (
+            <React.Fragment key={gi}>
+              {/* ゲーム区切りスペース */}
+              {gi > 0 && <div className="w-2.5" />}
+
+              <div className="flex gap-1">
+                {Array.from({ length: game.trialCount }).map((_, t) => {
+                  const globalIdx = gameStart + t;
+                  const isCompleted = globalIdx < completedTrials;
+                  const isCurrent = globalIdx === completedTrials && !isWarmup;
+
+                  return (
+                    <motion.div
+                      // key 変更で点灯アニメーションをトリガー
+                      key={`${globalIdx}-${isCompleted ? 1 : 0}`}
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{
+                        background: isCompleted
+                          ? color
+                          : isCurrent
+                            ? `${color}40`
+                            : 'rgba(255, 255, 255, 0.1)',
+                        boxShadow: isCompleted ? `0 0 6px ${color}55` : 'none',
+                      }}
+                      initial={isCompleted ? { scale: 1.6, opacity: 0.4 } : false}
+                      animate={
+                        isCurrent
+                          ? { scale: [1, 1.35, 1], opacity: 1 }
+                          : { scale: 1, opacity: 1 }
+                      }
+                      transition={
+                        isCurrent
+                          ? { duration: 1.2, repeat: Infinity, ease: 'easeInOut' }
+                          : { type: 'spring', stiffness: 400, damping: 15 }
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </React.Fragment>
+          );
         })}
       </div>
+
+      <span className="text-xs tabular-nums ml-1" style={{ color: '#B8B8D0' }}>
+        {completedTrials}/{scoredTotal}
+      </span>
     </div>
   );
 }
@@ -254,10 +289,7 @@ export function MixedSessionProgressBar(props: MixedSessionProgressBarProps) {
         </motion.span>
       )}
       <div className="flex-1">
-        {props.tier === 1
-          ? <MixedDotIndicator {...props} />
-          : <MixedBarIndicator {...props} />
-        }
+        <MixedDotIndicator {...props} />
       </div>
     </div>
   );
