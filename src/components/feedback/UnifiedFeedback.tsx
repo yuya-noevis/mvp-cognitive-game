@@ -67,6 +67,7 @@ export function UnifiedFeedback({
     triggerNearMiss,
     clearEffect,
     currentEffect,
+    consecutiveCorrect,
   } = useFeedback(feedbackSettings, callbacks);
 
   // FeedbackContext に渡す値
@@ -75,10 +76,11 @@ export function UnifiedFeedback({
       triggerCorrect,
       triggerIncorrect,
       triggerNearMiss,
+      consecutiveCorrect,
       onShowHint,
       onShowDemo,
     }),
-    [triggerCorrect, triggerIncorrect, triggerNearMiss, onShowHint, onShowDemo],
+    [triggerCorrect, triggerIncorrect, triggerNearMiss, consecutiveCorrect, onShowHint, onShowDemo],
   );
 
   return (

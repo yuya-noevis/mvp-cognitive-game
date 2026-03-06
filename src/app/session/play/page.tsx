@@ -38,9 +38,11 @@ import { SessionComplete, calcStarCount } from '@/components/transitions/Session
 import { TreasureChest } from '@/components/rewards/TreasureChest';
 import { useRewards } from '@/features/rewards/useRewards';
 import { loadDailyStreak } from '@/features/feedback/daily-streak';
+import { recordGameCompletion } from '@/features/daily-goal/useDailyGoal';
 import { soundManager } from '@/features/feedback/sound-manager';
+import { WeeklyCheckin, shouldShowWeeklyCheckin } from '@/features/weekly-checkin/WeeklyCheckin';
 
-type PagePhase = 'daily-limit' | 'instruction' | 'playing' | 'transition' | 'session-complete' | 'treasure-chest';
+type PagePhase = 'daily-limit' | 'instruction' | 'playing' | 'transition' | 'session-complete' | 'treasure-chest' | 'weekly-checkin';
 
 function resolveGameComponent(integratedId: IntegratedGameId, userTier: number) {
   const config = INTEGRATED_GAME_MAP[integratedId];
@@ -96,11 +98,11 @@ export default function MixedSessionPlayPage() {
 
   // Feedback settings: instructionLevel × sensory settings
   const feedbackSettings = useSensoryFeedbackSettings(instructionLevel);
-  const { triggerCorrect, triggerIncorrect, triggerNearMiss, clearEffect, currentEffect } =
+  const { triggerCorrect, triggerIncorrect, triggerNearMiss, clearEffect, currentEffect, consecutiveCorrect } =
     useFeedback(feedbackSettings);
   const feedbackCtx = useMemo(
-    () => ({ triggerCorrect, triggerIncorrect, triggerNearMiss }),
-    [triggerCorrect, triggerIncorrect, triggerNearMiss],
+    () => ({ triggerCorrect, triggerIncorrect, triggerNearMiss, consecutiveCorrect }),
+    [triggerCorrect, triggerIncorrect, triggerNearMiss, consecutiveCorrect],
   );
 
   // セッション終了警告（セッション残り1分前にトースト表示）
@@ -260,6 +262,8 @@ export default function MixedSessionPlayPage() {
       });
       // Advance unit tracker (v3 Section 9)
       advanceUnit(loadUnitState());
+      // Record daily goal completion
+      try { recordGameCompletion(); } catch { /* ignore */ }
       setPhase('session-complete');
     }
   }, []);
@@ -289,7 +293,12 @@ export default function MixedSessionPlayPage() {
   }, [router]);
 
   const handleRewardPhase = useCallback(() => {
-    setPhase('treasure-chest');
+    // Check for weekly check-in (Sunday) before going to reward
+    if (shouldShowWeeklyCheckin()) {
+      setPhase('weekly-checkin');
+    } else {
+      setPhase('treasure-chest');
+    }
   }, []);
 
   const ageGroup: AgeGroup = child?.ageGroup ?? '6-9';
@@ -366,6 +375,16 @@ export default function MixedSessionPlayPage() {
         totalAttempts={stats.totalAttempts}
         onGoHome={handleRewardPhase}
         ctaLabel="ごほうびをもらう"
+      />
+    );
+  }
+
+  // Weekly check-in (Sunday)
+  if (phase === 'weekly-checkin') {
+    return (
+      <WeeklyCheckin
+        onComplete={() => setPhase('treasure-chest')}
+        childId={child?.id}
       />
     );
   }

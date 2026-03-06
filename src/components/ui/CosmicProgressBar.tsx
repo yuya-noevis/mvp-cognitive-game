@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 interface CosmicProgressBarProps {
   progress: number; // 0-1
   className?: string;
+  ariaLabel?: string;
 }
 
 /**
@@ -14,13 +15,18 @@ interface CosmicProgressBarProps {
  * cosmic → nebula グラデーション
  * spring アニメーション + 先端にキラキラ
  */
-export function CosmicProgressBar({ progress, className = '' }: CosmicProgressBarProps) {
+export function CosmicProgressBar({ progress, className = '', ariaLabel = '進捗' }: CosmicProgressBarProps) {
   const clampedProgress = Math.max(0, Math.min(1, progress));
 
   return (
     <div
       className={`relative h-3 rounded-full overflow-hidden ${className}`}
       style={{ background: 'rgba(255,255,255,0.1)' }}
+      role="progressbar"
+      aria-valuenow={Math.round(clampedProgress * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={ariaLabel}
     >
       <motion.div
         className="h-full rounded-full relative"

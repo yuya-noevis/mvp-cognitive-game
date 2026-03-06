@@ -67,6 +67,7 @@ export function StageMap({ stages, currentStage, onBack }: StageMapProps) {
           onClick={onBack ?? (() => window.history.back())}
           className="w-12 h-12 rounded-full flex items-center justify-center tap-interactive"
           style={{ background: 'rgba(42, 42, 90, 0.8)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+          aria-label="もどる"
         >
           <BackArrowIcon size={24} style={{ color: '#8B5CF6' }} />
         </button>
@@ -74,8 +75,9 @@ export function StageMap({ stages, currentStage, onBack }: StageMapProps) {
         <button
           className="w-12 h-12 rounded-full flex items-center justify-center tap-interactive"
           style={{ background: 'rgba(42, 42, 90, 0.8)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+          aria-label="メニュー"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <rect x="4" y="6" width="16" height="2" rx="1" fill="#8B5CF6" />
             <rect x="4" y="11" width="16" height="2" rx="1" fill="#8B5CF6" />
             <rect x="4" y="16" width="16" height="2" rx="1" fill="#8B5CF6" />

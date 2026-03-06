@@ -1,5 +1,6 @@
 export {
   determineTier,
+  detectTierDivergence,
   deriveDiagnosisLevel,
   deriveLanguageUnderstanding,
   type Tier,

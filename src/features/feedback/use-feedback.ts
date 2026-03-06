@@ -22,6 +22,7 @@ export interface FeedbackCallbacks {
 
 export function useFeedback(settings: FeedbackSettings, callbacks?: FeedbackCallbacks) {
   const [currentEffect, setCurrentEffect] = useState<FeedbackEffectType>(null);
+  const [consecutiveCorrect, setConsecutiveCorrect] = useState(0);
   const streakTracker = useRef(new StreakTracker());
 
   const triggerCorrect = useCallback(() => {
@@ -54,11 +55,13 @@ export function useFeedback(settings: FeedbackSettings, callbacks?: FeedbackCall
       setCurrentEffect('correct');
     }
 
+    setConsecutiveCorrect(result.streak);
     return result;
   }, [settings]);
 
   const triggerIncorrect = useCallback(() => {
     const result = streakTracker.current.recordIncorrect();
+    setConsecutiveCorrect(0);
 
     // サウンド（L1では鳴らさない = soundEnabled: false）
     if (settings.soundEnabled) {
@@ -104,6 +107,7 @@ export function useFeedback(settings: FeedbackSettings, callbacks?: FeedbackCall
     clearEffect,
     resetStreak,
     currentEffect,
+    consecutiveCorrect,
     streakStats: streakTracker.current.getStats(),
   };
 }

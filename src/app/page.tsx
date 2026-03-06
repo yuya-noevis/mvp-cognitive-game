@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,11 @@ import { loadDailyStreak } from '@/features/feedback/daily-streak';
 import type { DailyStreak } from '@/features/feedback/daily-streak';
 import { PlantGrowth } from '@/components/streak/PlantGrowth';
 import { DailyStreakBadge } from '@/components/feedback/DailyStreakBadge';
+import { DailyGoalCard } from '@/features/daily-goal/DailyGoalCard';
+import { MoguraSpeech } from '@/components/mascot/MoguraSpeech';
+import { ExpectationCards } from '@/features/expectation/ExpectationCards';
+import { loadOnboardingProfile, saveOnboardingProfile } from '@/features/onboarding-profile';
+import type { ConcernTag } from '@/features/onboarding-profile';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -181,6 +186,26 @@ export default function Home() {
     try { setStreak(loadDailyStreak()); } catch { /* SSR guard */ }
   }, []);
 
+  // Phase 5: Expectation cards (first login only after onboarding)
+  const [showExpectation, setShowExpectation] = useState(false);
+  const [expectationConcerns, setExpectationConcerns] = useState<ConcernTag[]>([]);
+  const [expectationProfile, setExpectationProfile] = useState<{ childName: string; honorific: string; dailyGoalMinutes: number }>({ childName: '', honorific: '', dailyGoalMinutes: 10 });
+  useEffect(() => {
+    try {
+      const profile = loadOnboardingProfile();
+      if (profile.onboarding_completed && !profile.expectation_shown && profile.concern_tags.length > 0) {
+        setExpectationConcerns(profile.concern_tags);
+        setExpectationProfile({
+          childName: child?.displayName ?? '',
+          honorific: profile.honorific ?? '',
+          dailyGoalMinutes: profile.daily_goal_minutes ?? 10,
+        });
+        setShowExpectation(true);
+      }
+    } catch { /* SSR guard */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Redirect to login if no profile found (demo mode guard)
   useEffect(() => {
     if (!loading && !child) {
@@ -241,6 +266,36 @@ export default function Home() {
 
   const displayName = loading ? '...' : child?.displayName ?? '\u304A\u3068\u3082\u3060\u3061';
 
+  // Time-of-day greeting
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    const name = loading ? '' : child?.displayName ?? '';
+    const namePrefix = name ? `${name}、` : '';
+    if (hour < 11) return `${namePrefix}おはよう! きょうも あそぼう!`;
+    if (hour < 17) return `${namePrefix}こんにちは! いっしょに あそぼう!`;
+    return `${namePrefix}こんばんは! すこし あそぼう!`;
+  }, [loading, child?.displayName]);
+
+  // Show expectation cards overlay
+  if (showExpectation) {
+    return (
+      <ExpectationCards
+        concernTags={expectationConcerns}
+        childName={expectationProfile.childName}
+        honorific={expectationProfile.honorific as 'kun' | 'chan' | 'name_only' | ''}
+        dailyGoalMinutes={expectationProfile.dailyGoalMinutes}
+        onComplete={async () => {
+          setShowExpectation(false);
+          try {
+            const profile = loadOnboardingProfile();
+            profile.expectation_shown = true;
+            await saveOnboardingProfile(profile, child?.id);
+          } catch { /* ignore */ }
+        }}
+      />
+    );
+  }
+
   return (
     <div
       className="relative min-h-dvh w-full"
@@ -276,8 +331,18 @@ export default function Home() {
           </Link>
         </header>
 
+        {/* ---- Mogura greeting ---- */}
+        <div className="flex flex-shrink-0 justify-center px-5 pt-4">
+          <MoguraSpeech
+            expression={streak && streak.currentDays >= 3 ? 'excited' : 'happy'}
+            size={80}
+            message={greeting}
+            position="top"
+          />
+        </div>
+
         {/* ---- Main CTA: あそぶ button ---- */}
-        <div className="flex flex-shrink-0 justify-center px-5 pt-6 pb-2">
+        <div className="flex flex-shrink-0 justify-center px-5 pt-4 pb-2">
           <motion.button
             type="button"
             className="w-full max-w-[320px] py-5 rounded-3xl text-xl font-bold text-white transition-transform active:scale-95"
@@ -301,6 +366,11 @@ export default function Home() {
             <DailyStreakBadge streak={streak} />
           </div>
         )}
+
+        {/* ---- Daily Goal ---- */}
+        <div className="flex-shrink-0 px-5 pt-3">
+          <DailyGoalCard />
+        </div>
 
         {/* ---- Recent records ---- */}
         {recentRecords.length > 0 && (

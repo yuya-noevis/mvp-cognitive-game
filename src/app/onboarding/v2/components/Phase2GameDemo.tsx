@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { AgeGroup, TrialResponse } from '@/types';
 import { useGameSession } from '@/features/game-engine/hooks/useGameSession';
 import { TrialFeedback } from '@/components/feedback/TrialFeedback';
@@ -8,13 +8,16 @@ import { StarIcon, TargetIcon, ColorDotIcon } from '@/components/icons';
 import { touchDeGoConfig } from '@/games/touch-de-go/config';
 import { nowMs, randomInt } from '@/lib/utils';
 import Mogura from '@/components/mascot/Mogura';
+import { getChildName } from '@/features/onboarding-profile';
+import type { Honorific } from '@/features/onboarding-profile';
 
 const DEMO_MAX_TRIALS = 4;
 
 interface Phase2GameDemoProps {
   ageGroup: AgeGroup;
   childName: string;
-  onComplete: () => void;
+  honorific: Honorific | '';
+  onComplete: (calibrationResult?: { touchSuccess: boolean; shapeMatchAccuracy: number; goNoGoSuccess: boolean }) => void;
 }
 
 type Phase = 'intro' | 'ready' | 'waiting' | 'target' | 'feedback' | 'result';
@@ -26,7 +29,7 @@ const TARGET_VISUALS: { render: (size: number) => React.ReactNode }[] = [
   { render: (s) => <ColorDotIcon color="#22c55e" size={s} /> },
 ];
 
-export function Phase2GameDemo({ ageGroup, childName, onComplete }: Phase2GameDemoProps) {
+export function Phase2GameDemo({ ageGroup, childName, honorific, onComplete }: Phase2GameDemoProps) {
   const session = useGameSession({ gameConfig: touchDeGoConfig, ageGroup });
 
   const [uiPhase, setUiPhase] = useState<Phase>('intro');
@@ -36,6 +39,10 @@ export function Phase2GameDemo({ ageGroup, childName, onComplete }: Phase2GameDe
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const stimulusOnsetRef = useRef(0);
+
+  // Fullscreen game area
+  const gameAreaRef = useRef<HTMLDivElement>(null);
+  const [gameAreaSize, setGameAreaSize] = useState({ w: 280, h: 400 });
 
   const targetSize = (session.difficulty.target_size_px as number) || 100;
   const timeLimit = (session.difficulty.time_limit_ms as number) || 4000;
@@ -122,8 +129,32 @@ export function Phase2GameDemo({ ageGroup, childName, onComplete }: Phase2GameDe
 
   useEffect(() => { return clearTimer; }, [clearTimer]);
 
-  const displayName = childName || 'おともだち';
+  // Track window size for fullscreen game area
+  useEffect(() => {
+    const update = () => {
+      setGameAreaSize({ w: window.innerWidth, h: window.innerHeight });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  // Fullscreen target positioning (recomputed when targetX/Y change)
+  const fsTargetX = useMemo(() => {
+    const margin = targetSize / 2 + 20;
+    return randomInt(margin, Math.max(margin + 1, gameAreaSize.w - margin));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetX, gameAreaSize.w]);
+  const fsTargetY = useMemo(() => {
+    const margin = targetSize / 2 + 80;
+    return randomInt(margin, Math.max(margin + 1, gameAreaSize.h - margin - 40));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetY, gameAreaSize.h]);
+
+  const displayName = getChildName(childName, honorific);
   const accuracy = session.totalTrials > 0 ? session.totalCorrect / session.totalTrials : 0;
+
+  // --- Render ---
 
   if (uiPhase === 'intro') {
     return (
@@ -132,7 +163,7 @@ export function Phase2GameDemo({ ageGroup, childName, onComplete }: Phase2GameDe
 
         <div className="text-center">
           <h2 className="text-xl font-bold text-stardust">
-            {displayName}くん、<br />まずゲームをためしてみよう！
+            {displayName}、<br />まずゲームをためしてみよう！
           </h2>
           <p className="text-sm text-moon mt-2">
             でてきたものを すばやく タップ！
@@ -173,7 +204,7 @@ export function Phase2GameDemo({ ageGroup, childName, onComplete }: Phase2GameDe
         <div className="text-center">
           <h2 className="text-2xl font-bold text-stardust">よくできました！</h2>
           <p className="text-base text-moon mt-1">
-            {displayName}くん すごい！
+            {displayName} すごい！
           </p>
         </div>
 
@@ -204,7 +235,11 @@ export function Phase2GameDemo({ ageGroup, childName, onComplete }: Phase2GameDe
 
         <button
           type="button"
-          onClick={onComplete}
+          onClick={() => onComplete({
+            touchSuccess: accuracy > 0,
+            shapeMatchAccuracy: accuracy,
+            goNoGoSuccess: accuracy >= 0.5,
+          })}
           className="w-full h-14 bg-cosmic text-white text-lg font-bold rounded-2xl shadow-lg transition-opacity active:scale-[0.98]"
         >
           つぎへ
@@ -214,43 +249,40 @@ export function Phase2GameDemo({ ageGroup, childName, onComplete }: Phase2GameDe
   }
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <p className="text-base font-medium text-moon">
-        でてきたら すばやく タップ！
-      </p>
-
-      {/* Trial progress */}
-      <div className="flex gap-2">
-        {Array.from({ length: DEMO_MAX_TRIALS }).map((_, i) => (
-          <div
-            key={i}
-            className="w-6 h-2 rounded-full"
-            style={{
-              background: i < session.totalTrials
-                ? 'rgba(108, 60, 225, 0.8)'
-                : 'rgba(255, 255, 255, 0.1)',
-            }}
-          />
-        ))}
+    <div
+      ref={gameAreaRef}
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: 'rgba(13,13,43,0.98)' }}
+    >
+      {/* Top bar with instruction + progress */}
+      <div className="flex-shrink-0 pt-14 pb-3 px-5 flex flex-col items-center gap-2">
+        <p className="text-base font-medium text-moon">
+          でてきたら すばやく タップ！
+        </p>
+        <div className="flex gap-2">
+          {Array.from({ length: DEMO_MAX_TRIALS }).map((_, i) => (
+            <div
+              key={i}
+              className="w-8 h-2.5 rounded-full"
+              style={{
+                background: i < session.totalTrials
+                  ? 'rgba(108, 60, 225, 0.8)'
+                  : 'rgba(255, 255, 255, 0.1)',
+              }}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Game area */}
-      <div
-        className="relative rounded-3xl overflow-hidden"
-        style={{
-          width: '280px',
-          height: '280px',
-          background: 'rgba(42,42,90,0.4)',
-          border: '2px solid rgba(108,60,225,0.2)',
-        }}
-      >
+      {/* Fullscreen game area */}
+      <div className="relative flex-1 overflow-hidden">
         {uiPhase === 'waiting' && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="w-3 h-3 rounded-full animate-gentle-pulse"
+                  className="w-4 h-4 rounded-full animate-gentle-pulse"
                   style={{
                     background: 'rgba(108, 60, 225, 0.5)',
                     animationDelay: `${i * 0.2}s`,
@@ -267,22 +299,24 @@ export function Phase2GameDemo({ ageGroup, childName, onComplete }: Phase2GameDe
             className="absolute rounded-full flex items-center justify-center
               animate-scale-in active:scale-75 transition-transform"
             style={{
-              left: `${targetX}px`,
-              top: `${targetY}px`,
-              width: `${targetSize}px`,
-              height: `${targetSize}px`,
+              left: `${fsTargetX}px`,
+              top: `${fsTargetY - 100}px`,
+              width: `${Math.max(targetSize, 100)}px`,
+              height: `${Math.max(targetSize, 100)}px`,
               transform: 'translate(-50%, -50%)',
               background: 'rgba(108,60,225,0.2)',
               border: '3px solid rgba(108,60,225,0.6)',
             }}
           >
-            {TARGET_VISUALS[targetVisualIndex].render(Math.round(targetSize * 0.5))}
+            {TARGET_VISUALS[targetVisualIndex].render(Math.round(Math.max(targetSize, 100) * 0.5))}
           </button>
         )}
       </div>
 
       {feedbackCorrect !== null && (
-        <TrialFeedback isCorrect={feedbackCorrect} onComplete={handleFeedbackComplete} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <TrialFeedback isCorrect={feedbackCorrect} onComplete={handleFeedbackComplete} />
+        </div>
       )}
     </div>
   );

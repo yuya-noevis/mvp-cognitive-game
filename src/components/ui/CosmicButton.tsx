@@ -14,6 +14,8 @@ interface CosmicButtonProps {
   onClick?: () => void;
   className?: string;
   type?: 'button' | 'submit';
+  ariaLabel?: string;
+  ariaPressed?: boolean;
 }
 
 const VARIANT_STYLES: Record<CosmicButtonVariant, { bg: string; shadow: string; text: string }> = {
@@ -53,6 +55,8 @@ export function CosmicButton({
   onClick,
   className = '',
   type = 'button',
+  ariaLabel,
+  ariaPressed,
 }: CosmicButtonProps) {
   const style = VARIANT_STYLES[variant];
 
@@ -61,6 +65,8 @@ export function CosmicButton({
       <button
         type={type}
         disabled
+        aria-disabled="true"
+        aria-label={ariaLabel}
         className={`inline-flex items-center justify-center gap-2 font-bold rounded-2xl ${SIZE_CLASSES[size]} ${className}`}
         style={{
           background: '#B8B8D0',
@@ -79,6 +85,8 @@ export function CosmicButton({
       type={type}
       onClick={onClick}
       whileTap={{ scale: 0.93, y: 3 }}
+      aria-label={ariaLabel}
+      aria-pressed={ariaPressed}
       className={`inline-flex items-center justify-center gap-2 font-bold rounded-2xl tap-target ${SIZE_CLASSES[size]} ${className}`}
       style={{
         background: style.bg,

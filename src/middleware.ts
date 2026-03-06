@@ -41,9 +41,14 @@ export async function middleware(request: NextRequest) {
   // ------------------------------------------------------------------
   const { supabase, response } = createSupabaseMiddlewareClient(request);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (e) {
+    // Invalid refresh token or auth error — treat as unauthenticated
+    console.warn('[middleware] auth error (clearing stale session):', (e as Error).message);
+  }
 
   // Not logged in + private route → redirect to /login
   if (!user && !isPublicRoute) {

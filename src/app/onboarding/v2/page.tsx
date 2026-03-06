@@ -3,8 +3,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CosmicProgressBar } from '@/components/ui/CosmicProgressBar';
 import { useOnboardingV2 } from './hooks/useOnboardingV2';
-import { BirthDateScreen, NameScreen, SpeechLevelScreen } from './components/Phase1Screens';
+import { AgeNameScreen, SpeechLevelScreen, TabletOperationScreen, AuditorySensitivityScreen, DiagnosisScreen } from './components/Phase1Screens';
+import { ConcernSelectionScreen, SeverityScreen } from './components/Phase2Assessment';
+import { CalibrationGuidance } from './components/CalibrationGuidance';
+import { MascotSelection } from './components/MascotSelection';
 import { Phase2GameDemo } from './components/Phase2GameDemo';
+import { GoalSetting } from './components/GoalSetting';
 import { Phase3Signup } from './components/Phase3Signup';
 
 const slideVariants = {
@@ -27,11 +31,20 @@ export default function OnboardingV2Page() {
     saving,
     direction,
     progress,
+    currentScreenNumber,
+    totalInfoScreens,
+    showProgressBar,
     showBackButton,
+    computedTier,
     updateData,
     goToNextPhase1Screen,
-    goToPrevPhase1Screen,
-    handlePhase2Complete,
+    goToNextPhase2Screen,
+    goBack,
+    handleGuidanceStart,
+    handleCalibrationSkip,
+    handleMascotConfirm,
+    handleCalibrationComplete,
+    handleGoalComplete,
     handleSkipSignup,
     handleSignup,
     handleDebugReset,
@@ -39,17 +52,21 @@ export default function OnboardingV2Page() {
 
   if (!initialized) return null;
 
-  const showProgressBar = state.phase === 'phase1_info';
-
   // Compute a unique key for AnimatePresence transitions
-  const animationKey =
-    state.phase === 'phase1_info'
-      ? `phase1_${state.phase1ScreenIndex}`
-      : state.phase;
+  const animationKey = (() => {
+    if (state.phase === 'phase1_info') return `phase1_${state.phase1ScreenIndex}`;
+    if (state.phase === 'phase2_assessment') return `phase2_${state.phase2ScreenIndex}`;
+    if (state.phase === 'phase3_calibration') return `phase3_${state.phase3Step}`;
+    return state.phase;
+  })();
+
+  // Phase 2: screen 0 = concern selection, screens 1..N = severity
+  const isSeverityScreen = state.phase === 'phase2_assessment' && state.phase2ScreenIndex > 0;
+  const severityConcernIndex = state.phase2ScreenIndex - 1;
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: '#0D0D2B' }}>
-      {/* Header */}
+      {/* Header with progress bar */}
       {showProgressBar && (
         <div
           className="fixed top-0 left-0 right-0 z-30 px-4 pt-12 pb-2"
@@ -59,7 +76,7 @@ export default function OnboardingV2Page() {
             <div className="flex items-center gap-3">
               {showBackButton ? (
                 <button
-                  onClick={goToPrevPhase1Screen}
+                  onClick={goBack}
                   className="tap-target flex-shrink-0 text-stardust"
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -80,7 +97,7 @@ export default function OnboardingV2Page() {
 
             {/* Step indicator */}
             <p className="text-xs font-bold tracking-widest mt-2 ml-9" style={{ color: '#6C3CE1' }}>
-              {state.phase1ScreenIndex + 1} / 3
+              {currentScreenNumber} / {totalInfoScreens}
             </p>
           </div>
         </div>
@@ -100,40 +117,99 @@ export default function OnboardingV2Page() {
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="w-full"
             >
-              {/* Phase 1: 3-screen info collection */}
+              {/* Phase 1: 5-screen info collection */}
               {state.phase === 'phase1_info' && state.phase1ScreenIndex === 0 && (
-                <BirthDateScreen
+                <AgeNameScreen
                   data={state.data}
                   onUpdate={updateData}
                   onNext={goToNextPhase1Screen}
                 />
               )}
               {state.phase === 'phase1_info' && state.phase1ScreenIndex === 1 && (
-                <NameScreen
-                  data={state.data}
-                  onUpdate={updateData}
-                  onNext={goToNextPhase1Screen}
-                />
-              )}
-              {state.phase === 'phase1_info' && state.phase1ScreenIndex === 2 && (
                 <SpeechLevelScreen
                   data={state.data}
                   onUpdate={updateData}
                   onNext={goToNextPhase1Screen}
                 />
               )}
-
-              {/* Phase 2: Game demo / calibration */}
-              {state.phase === 'phase2_game' && (
-                <Phase2GameDemo
-                  ageGroup={state.data.ageGroup ?? '6-9'}
-                  childName={state.data.childName}
-                  onComplete={handlePhase2Complete}
+              {state.phase === 'phase1_info' && state.phase1ScreenIndex === 2 && (
+                <TabletOperationScreen
+                  data={state.data}
+                  onUpdate={updateData}
+                  onNext={goToNextPhase1Screen}
+                />
+              )}
+              {state.phase === 'phase1_info' && state.phase1ScreenIndex === 3 && (
+                <AuditorySensitivityScreen
+                  data={state.data}
+                  onUpdate={updateData}
+                  onNext={goToNextPhase1Screen}
+                />
+              )}
+              {state.phase === 'phase1_info' && state.phase1ScreenIndex === 4 && (
+                <DiagnosisScreen
+                  data={state.data}
+                  onUpdate={updateData}
+                  onNext={goToNextPhase1Screen}
                 />
               )}
 
-              {/* Phase 3: Optional signup */}
-              {state.phase === 'phase3_signup' && (
+              {/* Phase 2: concern selection + severity screens */}
+              {state.phase === 'phase2_assessment' && state.phase2ScreenIndex === 0 && (
+                <ConcernSelectionScreen
+                  data={state.data}
+                  onUpdate={updateData}
+                  onNext={goToNextPhase2Screen}
+                />
+              )}
+              {isSeverityScreen && (
+                <SeverityScreen
+                  data={state.data}
+                  concernIndex={severityConcernIndex}
+                  totalConcerns={state.data.concernTags.length}
+                  onUpdate={updateData}
+                  onNext={goToNextPhase2Screen}
+                />
+              )}
+
+              {/* Phase 3: Guidance → Character selection → Calibration → Goal */}
+              {state.phase === 'phase3_calibration' && state.phase3Step === 'guidance' && (
+                <CalibrationGuidance
+                  childName={state.data.childName}
+                  honorific={state.data.honorific}
+                  onStart={handleGuidanceStart}
+                  onSkip={handleCalibrationSkip}
+                />
+              )}
+              {state.phase === 'phase3_calibration' && state.phase3Step === 'mascot' && (
+                <MascotSelection
+                  selected={state.data.selectedMascot}
+                  onSelect={(mascot) => updateData({ selectedMascot: mascot })}
+                  onConfirm={handleMascotConfirm}
+                  childName={state.data.childName}
+                />
+              )}
+              {state.phase === 'phase3_calibration' && state.phase3Step === 'calibration' && (
+                <Phase2GameDemo
+                  ageGroup={state.data.ageGroup ?? '6-9'}
+                  childName={state.data.childName}
+                  honorific={state.data.honorific}
+                  onComplete={handleCalibrationComplete}
+                />
+              )}
+              {state.phase === 'phase3_calibration' && state.phase3Step === 'goal' && (
+                <GoalSetting
+                  childName={state.data.childName}
+                  honorific={state.data.honorific}
+                  tier={computedTier}
+                  selectedMinutes={state.data.dailyGoalMinutes}
+                  onSelect={(minutes) => updateData({ dailyGoalMinutes: minutes })}
+                  onNext={handleGoalComplete}
+                />
+              )}
+
+              {/* Phase 4: Optional signup */}
+              {state.phase === 'phase4_signup' && (
                 <Phase3Signup
                   data={state.data}
                   authError={authError}

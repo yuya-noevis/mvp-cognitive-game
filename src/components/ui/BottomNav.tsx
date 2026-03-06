@@ -65,6 +65,8 @@ export function BottomNav() {
   return (
     <nav
       className="fixed bottom-0 left-1/2 z-50 flex w-full max-w-[430px] -translate-x-1/2 items-center justify-around"
+      role="navigation"
+      aria-label="メインナビゲーション"
       style={{
         height: `calc(64px + env(safe-area-inset-bottom))`,
         paddingBottom: 'env(safe-area-inset-bottom)',
@@ -75,6 +77,8 @@ export function BottomNav() {
       {/* Home tab */}
       <Link
         href="/"
+        aria-label="ホーム"
+        aria-current={isHome ? 'page' : undefined}
         className="flex flex-1 flex-col items-center justify-center gap-0.5 pt-1"
       >
         <HomeIcon size={24} color={isHome ? '#6C3CE1' : '#B8B8D0'} />
@@ -91,6 +95,7 @@ export function BottomNav() {
         <button
           type="button"
           onClick={handlePlay}
+          aria-label="あそぶ"
           className="flex flex-col items-center -mt-5"
         >
           <div
@@ -111,6 +116,8 @@ export function BottomNav() {
       {/* Library tab */}
       <Link
         href="/library"
+        aria-label="きろく"
+        aria-current={isLibrary ? 'page' : undefined}
         className="flex flex-1 flex-col items-center justify-center gap-0.5 pt-1"
       >
         <StarIcon size={24} color={isLibrary ? '#6C3CE1' : '#B8B8D0'} />

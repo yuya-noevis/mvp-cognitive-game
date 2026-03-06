@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { GameSessionControls } from './hooks/useGameSession';
 import Mogura from '@/components/mascot/Mogura';
+import { MoguraSpeech } from '@/components/mascot/MoguraSpeech';
+import { CosmicButton } from '@/components/ui/CosmicButton';
 import { CosmicProgressBar } from '@/components/ui/CosmicProgressBar';
+import { ComboCounter } from '@/components/feedback/ComboCounter';
 import type { GameId } from '@/types';
 import { useSessionContext } from '@/features/session/SessionContext';
 
@@ -87,6 +90,20 @@ function StarParticles({ count = 25 }: { count?: number }) {
 export function GameShell({ gameName, gameId, session, children, stageMode, maxTrials, onStageComplete }: GameShellProps) {
   const router = useRouter();
   const sessionCtx = useSessionContext();
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+
+  const handleQuitRequest = useCallback(() => {
+    setShowQuitConfirm(true);
+  }, []);
+
+  const handleQuitConfirm = useCallback(() => {
+    setShowQuitConfirm(false);
+    session.endSession('user_quit');
+  }, [session]);
+
+  const handleQuitCancel = useCallback(() => {
+    setShowQuitConfirm(false);
+  }, []);
   const building = gameId ? GAME_BUILDING_MAP[gameId] || 'hikari' : 'hikari';
   const bgGradient = BUILDING_GRADIENTS[building];
 
@@ -109,15 +126,17 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
 
         <div className="text-center animate-fade-in-up relative z-10">
           <div className="mb-4">
-            <Mogura expression="encouraging" size={120} />
+            <MoguraSpeech expression="encouraging" size={120} message={`${gameName}で あそぼう!`} />
           </div>
-          <p className="text-lg font-bold text-stardust mb-6">{gameName}で あそぼう!</p>
-          <button
+          <CosmicButton
+            variant="primary"
+            size="lg"
             onClick={session.startSession}
-            className="btn-cosmic px-14 py-5 text-xl rounded-2xl tap-interactive active:translate-y-[2px] active:shadow-sm transition-all duration-150"
+            ariaLabel={`${gameName}をはじめる`}
+            className="px-14"
           >
             はじめる
-          </button>
+          </CosmicButton>
         </div>
       </div>
     );
@@ -166,12 +185,12 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
           </p>
 
           {/* Star rating */}
-          <div className="flex items-center justify-center gap-1 mt-4 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+          <div className="flex items-center justify-center gap-1 mt-4 animate-fade-in-up" role="img" aria-label={`星${session.totalTrials > 0 ? (session.totalCorrect / session.totalTrials >= 0.8 ? 3 : session.totalCorrect / session.totalTrials >= 0.5 ? 2 : 1) : 1}つ`} style={{ animationDelay: '400ms' }}>
             {[1, 2, 3].map((star) => {
               const accuracy = session.totalTrials > 0 ? session.totalCorrect / session.totalTrials : 0;
               const filled = star <= (accuracy >= 0.8 ? 3 : accuracy >= 0.5 ? 2 : 1);
               return (
-                <svg key={star} width="36" height="36" viewBox="0 0 24 24" fill={filled ? '#FFD43B' : 'rgba(255,255,255,0.15)'}>
+                <svg key={star} width="36" height="36" viewBox="0 0 24 24" fill={filled ? '#FFD43B' : 'rgba(255,255,255,0.15)'} aria-hidden="true">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
               );
@@ -183,12 +202,15 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
           </p>
 
           <div className="mt-8 animate-fade-in-up" style={{ animationDelay: '600ms' }}>
-            <button
+            <CosmicButton
+              variant="secondary"
+              size="lg"
               onClick={() => router.push('/')}
-              className="btn-comet px-14 py-5 text-lg rounded-2xl tap-interactive active:translate-y-[2px] active:shadow-sm transition-all duration-150"
+              ariaLabel="ホームにもどる"
+              className="px-14"
             >
               もどる
-            </button>
+            </CosmicButton>
           </div>
         </div>
       </div>
@@ -212,18 +234,24 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
             すこし やすんでから つづけよう
           </p>
           <div className="flex flex-col items-center gap-3 w-full">
-            <button
+            <CosmicButton
+              variant="primary"
+              size="md"
               onClick={session.endBreak}
-              className="btn-cosmic w-full h-12 text-lg rounded-2xl tap-interactive active:translate-y-[2px] active:shadow-sm transition-all duration-150"
+              ariaLabel="ゲームをつづける"
+              className="w-full"
             >
               つづける
-            </button>
-            <button
+            </CosmicButton>
+            <CosmicButton
+              variant="ghost"
+              size="md"
               onClick={() => session.endSession('user_quit')}
-              className="w-full h-12 text-base font-medium rounded-2xl tap-interactive bg-galaxy-light text-moon"
+              ariaLabel="ゲームをおわる"
+              className="w-full"
             >
               おわる
-            </button>
+            </CosmicButton>
           </div>
         </div>
       </div>
@@ -246,14 +274,17 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
             <Mogura expression="encouraging" size={28} />
           </div>
 
+          {/* Combo counter */}
+          <ComboCounter />
+
           {/* Progress bar */}
           <CosmicProgressBar progress={progress} className="flex-1 mx-1" />
 
           {/* Pause/settings button */}
           <button
-            onClick={() => session.endSession('user_quit')}
+            onClick={handleQuitRequest}
             className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg tap-interactive"
-            aria-label="一時停止"
+            aria-label="ゲームをやめる"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8B8D0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/>
@@ -267,6 +298,50 @@ export function GameShell({ gameName, gameId, session, children, stageMode, maxT
       <main className={`flex-1 flex flex-col px-2 relative z-10 overflow-y-auto ${sessionCtx ? 'pt-10' : ''}`}>
         {children}
       </main>
+
+      {/* Quit confirmation dialog */}
+      {showQuitConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-6"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="やめる確認"
+        >
+          <div
+            className="w-full max-w-[300px] rounded-3xl p-6 text-center animate-pop-in"
+            style={{ background: '#1A1A40' }}
+          >
+            <Mogura expression="sleepy" size={64} />
+            <p className="text-base font-bold text-stardust mt-3 mb-1">
+              やめちゃうの?
+            </p>
+            <p className="text-xs text-moon mb-5">
+              つづけると もっと たのしいよ!
+            </p>
+            <div className="flex flex-col gap-2">
+              <CosmicButton
+                variant="primary"
+                size="md"
+                onClick={handleQuitCancel}
+                ariaLabel="ゲームをつづける"
+                className="w-full"
+              >
+                つづける
+              </CosmicButton>
+              <CosmicButton
+                variant="ghost"
+                size="md"
+                onClick={handleQuitConfirm}
+                ariaLabel="ゲームをやめる"
+                className="w-full"
+              >
+                やめる
+              </CosmicButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -27,6 +27,7 @@ import { DDA_PROFILES } from '@/features/dda/disability-profile';
 import type { DDAProfile } from '@/features/dda/disability-profile';
 import { useSensoryFeedbackSettings } from '@/features/sensory/useSensoryFeedbackSettings';
 import { soundManager } from '@/features/feedback/sound-manager';
+import { recordGameCompletion } from '@/features/daily-goal/useDailyGoal';
 
 const SEEN_KEY_PREFIX = 'manas_instruction_seen_';
 
@@ -72,11 +73,12 @@ export default function IntegratedGamePage() {
     triggerNearMiss,
     clearEffect,
     currentEffect,
+    consecutiveCorrect,
   } = useFeedback(feedbackSettings);
 
   const feedbackCtx = useMemo(
-    () => ({ triggerCorrect, triggerIncorrect, triggerNearMiss }),
-    [triggerCorrect, triggerIncorrect, triggerNearMiss],
+    () => ({ triggerCorrect, triggerIncorrect, triggerNearMiss, consecutiveCorrect }),
+    [triggerCorrect, triggerIncorrect, triggerNearMiss, consecutiveCorrect],
   );
 
 
@@ -179,6 +181,8 @@ export default function IntegratedGamePage() {
     // Session complete
     if (result.isSessionComplete) {
       dailyTracker.recordSessionEnd(manager.getSessionDurationMs());
+      // Record daily goal completion
+      try { recordGameCompletion(); } catch { /* ignore */ }
       setPhase('session-complete');
     }
   }, []);
