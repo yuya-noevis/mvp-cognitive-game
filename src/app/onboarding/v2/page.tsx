@@ -45,7 +45,6 @@ export default function OnboardingV2Page() {
     handleMascotConfirm,
     handleCalibrationComplete,
     handleGoalComplete,
-    handleSkipSignup,
     handleSignup,
     handleDebugReset,
   } = useOnboardingV2();
@@ -216,7 +215,6 @@ export default function OnboardingV2Page() {
                   saving={saving}
                   onUpdate={updateData}
                   onSignup={handleSignup}
-                  onSkip={handleSkipSignup}
                 />
               )}
             </motion.div>

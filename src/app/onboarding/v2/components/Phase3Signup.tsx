@@ -10,7 +10,6 @@ interface Phase3SignupProps {
   saving: boolean;
   onUpdate: (partial: Partial<OnboardingV2Data>) => void;
   onSignup: () => void;
-  onSkip: () => void;
 }
 
 export function Phase3Signup({
@@ -19,7 +18,6 @@ export function Phase3Signup({
   saving,
   onUpdate,
   onSignup,
-  onSkip,
 }: Phase3SignupProps) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -115,19 +113,6 @@ export function Phase3Signup({
         {saving ? '保存中...' : '登録してはじめる'}
       </button>
 
-      {/* Skip button */}
-      <button
-        type="button"
-        onClick={onSkip}
-        disabled={saving}
-        className="w-full h-11 text-sm font-medium text-moon border border-galaxy-light rounded-xl active:bg-galaxy-light/20 disabled:opacity-40"
-      >
-        今はスキップする
-      </button>
-
-      <p className="text-xs text-moon/60 text-center">
-        スキップした場合でも、この端末でゲームを続けることができます
-      </p>
     </div>
   );
 }
