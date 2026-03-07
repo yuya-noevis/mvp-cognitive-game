@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import Mogura from '@/components/mascot/Mogura';
 import { StickyNextButton } from '../../components/StickyNextButton';
 import { getChildName } from '@/features/onboarding-profile';
@@ -132,7 +132,6 @@ export function SeverityScreen({
 
   const existing = data.concernSeverities.find((s) => s.category === category);
   const [selected, setSelected] = useState<number | null>(existing?.severity ?? null);
-  const autoAdvanceRef = useRef(false);
 
   const handleSelect = (severity: 1 | 2 | 3 | 4 | 5 | 6 | 7) => {
     setSelected(severity);
@@ -153,17 +152,7 @@ export function SeverityScreen({
     }
 
     onUpdate({ concernSeverities: updated, ...baselineUpdates });
-    autoAdvanceRef.current = true;
   };
-
-  // Auto-advance 0.5s after selection
-  useEffect(() => {
-    if (!autoAdvanceRef.current || selected === null) return;
-    autoAdvanceRef.current = false;
-    const timer = setTimeout(onNext, 500);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
 
   return (
     <div className="flex flex-col items-center gap-5">
